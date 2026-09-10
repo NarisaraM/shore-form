@@ -1,0 +1,308 @@
+# -*- coding: utf-8 -*-
+"""
+excel_fill.py
+รับข้อมูลที่กรอกจากฟอร์ม แล้วเขียนลงไฟล์ Excel แม่แบบตาม TERMINAL ที่เลือก
+- แต่ละ TERMINAL มีไฟล์ผลลัพธ์ / ชีต / ตำแหน่งเซลล์ ของตัวเอง (ดู TERMINALS ข้างล่าง)
+- รัน No. อัตโนมัติเมื่อมีหลายตู้
+- คอลัมน์ LINE => "HAL"
+- เฉพาะ A3 (C1,C2): คอลัมน์ PAYMENT TAEM => "CREDIT"
+
+ทั้งหมดทำงานด้วย openpyxl (ไม่มี AI)
+"""
+
+from __future__ import annotations
+
+import os
+import re
+from datetime import datetime
+from typing import Dict, List
+
+import openpyxl
+from openpyxl.utils import column_index_from_string, get_column_letter
+
+from .xls_convert import ensure_xlsx
+
+LINE_CODE = "HAL"
+AGENT_NAME = "HEUNG-A"
+
+# ---------------------------------------------------------------------------
+# ตารางแม็ปข้อมูลของแต่ละ TERMINAL
+#   header : ตำแหน่งเซลล์ของ Vessel / Voy. (เขียนครั้งเดียว)
+#   table  : start_row = แถวแรกของข้อมูลตู้, max_rows = จำนวนแถวที่รองรับ
+#            cols = ชื่อฟิลด์ -> ตัวอักษรคอลัมน์
+#   ฟิลด์ที่ใช้ได้ใน cols:
+#     no, container, booking, size, type, size_combo, pod, status,
+#     line, shipper, seal, vessel, voy, vessel_voy, agent, vgm, terminal
+# ---------------------------------------------------------------------------
+TERMINALS: Dict[str, Dict] = {
+    # ---------- A0 : LCMT / LCB1 ----------
+    "LCMT Company LTD, ( under LCB1 Group)  A0": {
+        "key": "A0",
+        "src": "A0-SHORE.xls",
+        "out": "A0-SHORE.xlsx",
+        "sheet": "Sheet1",
+        "header": {"vessel": "E6", "voy": "I6"},
+        "table": {
+            "start_row": 14,
+            "max_rows": 11,
+            "cols": {
+                "no": "A", "container": "C", "booking": "D",
+                "size": "E", "type": "F", "pod": "G",
+            },
+        },
+    },
+    # ---------- B3 : ESCO ----------
+    "ESCO (EASTERN SEA LCH CNTR TML/B3)": {
+        "key": "B3",
+        "src": "B3-SHORE.xls",
+        "out": "B3-SHORE.xlsx",
+        "sheet": "CHORE CY",
+        "header": {"vessel": "C11", "voy": "H11"},
+        "table": {
+            "start_row": 17,
+            "max_rows": 20,
+            "cols": {
+                "no": "A", "container": "B", "type": "C", "size": "D",
+                "pod": "E", "booking": "J",
+            },
+        },
+    },
+    # ---------- B5/C3 : LCIT ----------
+    "B5/C3 LCIT (LAEM CHABANG INTERNATIONAL TERMINAL CO., LTD)": {
+        "key": "B5C3",
+        "src": "B5C3-SHORE.xls",
+        "out": "B5C3-SHORE.xlsx",
+        "sheet": "Sheet1",
+        "header": {},
+        "table": {
+            "start_row": 2,
+            "max_rows": 500,
+            "clear_first": True,        # ล้างข้อมูลตัวอย่างเดิมในชีตก่อน
+            "cols": {
+                "no": "A", "booking": "B", "terminal": "C", "pod": "D",
+                "agent": "E", "vessel_voy": "F", "container": "G",
+                "seal": "H", "size_combo": "I",
+            },
+            "row_constants": {"terminal": "LCB B5/C3"},
+        },
+    },
+    # ---------- A2 : Thai Laemchabang Terminal (TLT) ----------
+    "A2 ( Thai Laemchabang Terminal, TLT / 허치슨 )": {
+        "key": "A2",
+        "src": "A2-FORM  A.xlsx",
+        "out": "A2-FORM A.xlsx",
+        "sheet": "FORM A",
+        "header": {"vessel": "B8", "voy": "I8"},
+        "table": {
+            "start_row": 12,
+            "max_rows": 13,
+            "cols": {
+                "no": "L", "container": "M", "size": "N", "type": "O",
+                "vgm": "Q", "agent": "R", "pod": "S", "booking": "T",
+            },
+        },
+    },
+    # ---------- A3 (C1,C2) : Hutchison (HLT) ----------
+    "A3 (C1,C2) (Hutchison Laemchabang Terminal Limited, HLT)": {
+        "key": "A3C1C2",
+        "src": "A3C1C2-HUTCHISON.xls",
+        "out": "A3C1C2-HUTCHISON.xlsx",
+        "sheet": "HPT",
+        "header": {},
+        "table": {
+            "start_row": 10,
+            "max_rows": 19,
+            "cols": {
+                "no": "A", "line": "B", "shipper": "C", "size": "D", "type": "E",
+                "container": "F", "vessel": "G", "voy": "H", "pod": "I",
+                "booking": "K", "seal": "L", "status": "M", "payment": "U",
+            },
+            "row_constants": {"payment": "CREDIT"},
+        },
+    },
+}
+
+SIZE_SPLIT_RE = re.compile(r"^\s*(\d{2})\s*([A-Za-z/]{1,4})?\s*$")
+
+
+def split_size(raw: str):
+    """'20 GP' -> ('20', 'GP') ; '40HQ' -> ('40', 'HQ')"""
+    if not raw:
+        return "", ""
+    m = SIZE_SPLIT_RE.match(str(raw).replace("  ", " "))
+    if m:
+        return m.group(1), (m.group(2) or "").upper()
+    parts = str(raw).split()
+    if len(parts) == 2:
+        return parts[0], parts[1].upper()
+    return str(raw), ""
+
+
+def status_code(raw: str) -> str:
+    """'FULL' -> 'F' ; 'EMPTY' -> 'E' (สำหรับคอลัมน์ที่ชื่อ STATUS F/E)"""
+    s = str(raw or "").strip().upper()
+    if s.startswith("F"):
+        return "F"
+    if s.startswith("E"):
+        return "E"
+    return s
+
+
+def _unmerge_anchor(ws, coord: str) -> str:
+    """ถ้า coord อยู่ในช่วง merge แต่ไม่ใช่มุมซ้ายบน ให้คืน coord ของมุมซ้ายบนแทน"""
+    for rng in ws.merged_cells.ranges:
+        if coord in rng:
+            return rng.coord.split(":")[0]
+    return coord
+
+
+def _set(ws, coord: str, value) -> None:
+    if value is None or value == "":
+        return
+    ws[_unmerge_anchor(ws, coord)] = value
+
+
+def _cell(col_letter: str, row: int) -> str:
+    return f"{col_letter}{row}"
+
+
+def build_record_rows(payload: Dict) -> List[Dict]:
+    """แปลง payload จากฟอร์มเป็นรายการแถว (หนึ่งแถวต่อหนึ่งตู้)"""
+    vessel = (payload.get("vessel") or "").strip()
+    voy = (payload.get("voy") or "").strip()
+    shipper = (payload.get("shipper") or "").strip()
+    pod = (payload.get("pod") or "").strip()
+    booking = (payload.get("booking") or "").strip()
+    terminal = (payload.get("terminal") or "").strip()
+
+    rows: List[Dict] = []
+    for item in payload.get("rows", []):
+        raw_size = (item.get("size") or "").strip()
+        size_num, size_type = split_size(raw_size)
+        rows.append({
+            "container": (item.get("container") or "").strip().upper(),
+            "size": size_num,
+            "type": size_type,
+            "size_combo": raw_size.replace(" ", ""),
+            "size_raw": raw_size,
+            "status": (item.get("status") or "").strip().upper(),
+            "vessel": vessel,
+            "voy": voy,
+            "vessel_voy": f"{vessel} V.{voy}".strip(" V."),
+            "shipper": shipper,
+            "pod": pod,
+            "booking": booking,
+            "terminal": terminal,
+            "agent": AGENT_NAME,
+            "line": LINE_CODE,
+            "seal": (item.get("seal") or "").strip(),
+            "vgm": (item.get("vgm") or "").strip(),
+        })
+    return rows
+
+
+def fill(payload: Dict, base_dir: str, cache_dir: str, out_dir: str) -> Dict:
+    """
+    เขียนข้อมูลลงแม่แบบของ TERMINAL ที่เลือก
+    คืน: {"ok":bool, "out_file":str, "rows":int, "error":str, "warnings":[...]}
+    """
+    terminal = (payload.get("terminal") or "").strip()
+    if terminal not in TERMINALS:
+        return {"ok": False, "error": f"ไม่รู้จัก TERMINAL: {terminal!r}", "warnings": []}
+
+    conf = TERMINALS[terminal]
+    rows = build_record_rows(payload)
+    if not rows:
+        return {"ok": False, "error": "ยังไม่มีข้อมูลตู้ (rows ว่าง)", "warnings": []}
+
+    warnings: List[str] = []
+
+    src_path = os.path.join(base_dir, conf["src"])
+    if not os.path.isfile(src_path):
+        return {"ok": False, "error": f"ไม่พบไฟล์แม่แบบ {conf['src']}", "warnings": []}
+
+    template_xlsx = ensure_xlsx(src_path, cache_dir)
+    wb = openpyxl.load_workbook(template_xlsx)
+
+    sheet_name = conf["sheet"]
+    ws = wb[sheet_name] if sheet_name in wb.sheetnames else wb.active
+    if sheet_name not in wb.sheetnames:
+        warnings.append(f"ไม่พบชีต {sheet_name!r} ใช้ชีต {ws.title!r} แทน")
+
+    # ---- ส่วนหัว: Vessel / Voy. ----
+    header = conf.get("header", {})
+    if header.get("vessel"):
+        _set(ws, header["vessel"], rows[0]["vessel"])
+    if header.get("voy"):
+        _set(ws, header["voy"], rows[0]["voy"])
+
+    tbl = conf["table"]
+    start = tbl["start_row"]
+    max_rows = tbl["max_rows"]
+    cols = tbl["cols"]
+    row_constants = tbl.get("row_constants", {})
+
+    # ---- ล้างข้อมูลตัวอย่างเดิม (เฉพาะที่กำหนด clear_first) ----
+    # ล้างเฉพาะแถวที่ยังมี "เลขตู้" อยู่ในคอลัมน์ container เท่านั้น
+    # (แถวข้อความท้ายตาราง เช่น "ขอแสดงความนับถือ," จะไม่ถูกแตะ)
+    if tbl.get("clear_first"):
+        col_indices = [column_index_from_string(c) for c in cols.values()]
+        cmin, cmax = min(col_indices), max(col_indices)
+        cn_col = column_index_from_string(cols["container"])
+        r = start
+        while r < start + max_rows:
+            cn_val = ws.cell(row=r, column=cn_col).value
+            if cn_val is None or (isinstance(cn_val, str) and not cn_val.strip()):
+                break
+            for c in range(cmin, cmax + 1):
+                ws.cell(row=r, column=c).value = None
+            r += 1
+
+    # ---- เขียนข้อมูลตู้ทีละแถว ----
+    written = 0
+    for i, rec in enumerate(rows):
+        excel_row = start + i
+        if i >= max_rows:
+            warnings.append(
+                f"แม่แบบรองรับสูงสุด {max_rows} ตู้ ตู้ที่ {i + 1} เป็นต้นไปไม่ได้ถูกเขียน"
+            )
+            break
+
+        for field, col_letter in cols.items():
+            coord = _cell(col_letter, excel_row)
+            if field in row_constants:              # ค่าคงที่ต่อแถว (เช่น terminal, payment)
+                _set(ws, coord, row_constants[field])
+            elif field == "no":
+                _set(ws, coord, i + 1)
+            elif field == "line":                   # คอลัมน์ LINE => HAL
+                _set(ws, coord, LINE_CODE)
+            elif field == "payment":                # คอลัมน์ PAYMENT TAEM => CREDIT
+                _set(ws, coord, "CREDIT")
+            elif field == "status":
+                _set(ws, coord, status_code(rec["status"]))
+            elif field in rec:
+                _set(ws, coord, rec[field])
+
+        written += 1
+
+    # ---- บันทึกไฟล์ผลลัพธ์ ----
+    os.makedirs(out_dir, exist_ok=True)
+    out_path = os.path.join(out_dir, conf["out"])
+    try:
+        wb.save(out_path)
+    except PermissionError:
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        stem, ext = os.path.splitext(conf["out"])
+        out_path = os.path.join(out_dir, f"{stem}_{stamp}{ext}")
+        wb.save(out_path)
+        warnings.append("ไฟล์เดิมเปิดค้างอยู่ จึงบันทึกเป็นชื่อใหม่")
+
+    return {
+        "ok": True,
+        "out_file": os.path.basename(out_path),
+        "out_path": out_path,
+        "rows": written,
+        "terminal_key": conf["key"],
+        "warnings": warnings,
+        "error": "",
+    }

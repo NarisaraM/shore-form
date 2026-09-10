@@ -1,0 +1,23 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# ---- ผลลัพธ์ / ไฟล์ที่ระบบสร้างเอง ----
+build/
+output/
+*.log
+
+# ---- ไฟล์ชั่วคราวของ Excel ----
+~$*.xls
+~$*.xlsx
+
+# ---- PDF นำเข้า (เก็บเฉพาะโฟลเดอร์ ไม่เก็บไฟล์) ----
+pdf_in/*
+!pdf_in/.gitkeep
+
+# ---- OS ----
+.DS_Store
+Thumbs.db

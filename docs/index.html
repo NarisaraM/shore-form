@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ระบบแบบฟอร์มสำรวจข้อมูล SHORE</title>
+<style>
+  :root{
+    --purple:#673ab7;--purple-dark:#512da8;--purple-light:#efe9f8;
+    --bg:#f0ebf8;--card:#fff;--line:#dadce0;--text:#202124;--muted:#5f6368;
+    --danger:#d93025;--radius:12px;
+    --shadow:0 1px 3px rgba(60,64,67,.15),0 4px 12px rgba(60,64,67,.08);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Segoe UI",Roboto,"Helvetica Neue","Noto Sans Thai",Tahoma,Arial,sans-serif;
+    background:var(--bg);color:var(--text);line-height:1.5;padding:0 12px 64px;
+  }
+  .wrap{max-width:700px;margin:0 auto}
+  .hero{
+    background:var(--card);border-top:10px solid var(--purple);border-radius:var(--radius);
+    box-shadow:var(--shadow);margin-top:24px;padding:24px 24px 20px;
+  }
+  .hero h1{margin:0 0 6px;font-size:26px;font-weight:600}
+  .hero p{margin:0;color:var(--muted);font-size:14px}
+  .hero .req-note{margin-top:14px;color:var(--danger);font-size:13px}
+  .card{
+    background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+    margin-top:16px;padding:22px 24px;border-left:6px solid transparent;
+  }
+  .card.section-title{border-left-color:var(--purple)}
+  .card h2{margin:0 0 4px;font-size:18px;font-weight:600}
+  .card h2 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:4px}
+  .field{margin-top:20px}
+  .field:first-child{margin-top:6px}
+  label.q{display:block;font-size:15px;font-weight:500;margin-bottom:10px}
+  label.q .star{color:var(--danger);margin-left:3px}
+  input[type=text],select{
+    width:100%;font-size:15px;font-family:inherit;color:var(--text);background:#fff;
+    border:1px solid var(--line);border-radius:8px;padding:11px 12px;outline:none;
+    transition:border-color .15s,box-shadow .15s;
+  }
+  input[type=text]:focus,select:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(103,58,183,.15)}
+  input.err,select.err{border-color:var(--danger);box-shadow:0 0 0 3px rgba(217,48,37,.12)}
+  .msg-err{color:var(--danger);font-size:13px;margin-top:6px;display:none}
+  .msg-err.show{display:block}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;font-size:15px}
+  .btn-primary{background:var(--purple);color:#fff;padding:12px 30px;font-weight:600;box-shadow:0 1px 2px rgba(60,64,67,.3)}
+  .btn-primary:hover{background:var(--purple-dark)}
+  .btn-primary:disabled{background:#b6a5da;cursor:default}
+  .btn-ghost{background:transparent;color:var(--purple);padding:10px 16px;font-weight:600;border:1px solid var(--line)}
+  .btn-ghost:hover{background:var(--purple-light)}
+  .btn-text{background:transparent;color:var(--purple);padding:8px 4px;font-weight:600}
+  .btn-text:hover{text-decoration:underline}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center}
+  .cntr-list{margin-top:8px;display:flex;flex-direction:column;gap:10px}
+  .cntr-item{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fafafa}
+  .cntr-item .idx{flex:none;width:28px;height:28px;border-radius:50%;background:var(--purple);color:#fff;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .cntr-item .info{flex:1;min-width:0}
+  .cntr-item .info .cn{font-weight:600;font-size:15px;word-break:break-all}
+  .cntr-item .info .meta{font-size:13px;color:var(--muted)}
+  .cntr-item .x{flex:none;background:transparent;color:var(--muted);font-size:20px;width:32px;height:32px;border-radius:50%;line-height:1}
+  .cntr-item .x:hover{background:#f1d9d6;color:var(--danger)}
+  .cntr-empty{color:var(--muted);font-size:14px;padding:10px 2px}
+  .badge{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--purple-light);color:var(--purple-dark);margin-right:6px}
+  .badge.e{background:#fce8e6;color:#c5221f}
+  .badge.f{background:#e6f4ea;color:#137333}
+  .modal-bg{position:fixed;inset:0;background:rgba(32,33,36,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+  .modal-bg.show{display:flex}
+  .modal{background:#fff;border-radius:14px;width:100%;max-width:440px;box-shadow:0 8px 32px rgba(0,0,0,.3);padding:24px;border-top:8px solid var(--purple)}
+  .modal h3{margin:0 0 4px;font-size:19px}
+  .modal p.hint{margin:0 0 8px;font-size:13px;color:var(--muted)}
+  .modal .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:22px;flex-wrap:wrap}
+  .result{background:#e6f4ea;border:1px solid #b7dfc2;border-radius:var(--radius);padding:22px 24px;margin-top:16px}
+  .result h2{margin:0 0 8px;color:#137333;font-size:19px}
+  .result .file{font-weight:600;word-break:break-all}
+  .result ul{margin:10px 0 0;padding-left:20px;color:#8a6d00}
+  .result .dl{margin-top:16px;display:inline-block}
+  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:28px}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--purple-light);color:var(--purple-dark);margin-left:8px;vertical-align:middle}
+  .loading{color:var(--muted);font-size:13px;margin-top:10px}
+  @media (max-width:520px){
+    .hero{padding:20px 16px}.card{padding:18px 16px}.hero h1{font-size:22px}.btn-primary{width:100%}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>ระบบแบบฟอร์มสำรวจข้อมูล SHORE <span class="pill">STATIC / GitHub Pages</span></h1>
+    <p>กรอกข้อมูลทีละขั้นตอน ระบบจะนำไปกรอกลงไฟล์ Excel ของท่าที่เลือกให้ในเบราว์เซอร์ (LINE = HAL) แล้วให้ดาวน์โหลด</p>
+    <div class="toolbar">
+      <label class="btn-ghost" style="cursor:pointer">
+        📄 นำเข้าข้อมูลจาก PDF
+        <input type="file" id="pdfInput" accept="application/pdf,.pdf" multiple hidden />
+      </label>
+      <span id="pdfStatus" class="loading" hidden></span>
+    </div>
+    <div id="libStatus" class="loading">กำลังโหลดไลบรารี…</div>
+    <div class="req-note">* จำเป็นต้องกรอก</div>
+  </div>
+
+  <form id="form" autocomplete="off">
+    <div class="card section-title">
+      <h2>ข้อมูลการจอง <span class="sub">Booking / Vessel Information</span></h2>
+
+      <div class="field">
+        <label class="q" for="terminal">TERMINAL <span class="star">*</span></label>
+        <select id="terminal" name="terminal" required>
+          <option value="" disabled selected>— เลือกท่า —</option>
+        </select>
+        <div class="msg-err" data-for="terminal">กรุณาเลือก TERMINAL</div>
+      </div>
+
+      <div class="field">
+        <label class="q" for="vessel">Vessel (ชื่อเรือ) <span class="star">*</span></label>
+        <input type="text" id="vessel" name="vessel" placeholder="เช่น HEUNG-A BANGKOK" required />
+        <div class="msg-err" data-for="vessel">กรุณากรอกชื่อเรือ</div>
+      </div>
+
+      <div class="field">
+        <label class="q" for="voy">Voy. (เที่ยวเรือ) <span class="star">*</span></label>
+        <input type="text" id="voy" name="voy" placeholder="เช่น 2512N" required />
+        <div class="msg-err" data-for="voy">กรุณากรอก Voy.</div>
+      </div>
+
+      <div class="field">
+        <label class="q" for="shipper">Shipper name (ชื่อผู้ส่งออก) <span class="star">*</span></label>
+        <input type="text" id="shipper" name="shipper" placeholder="เช่น HI HAPPY TRADING CO., LTD." required />
+        <div class="msg-err" data-for="shipper">กรุณากรอกชื่อ Shipper</div>
+      </div>
+
+      <div class="field">
+        <label class="q" for="pod">POD (ปลายทาง) <span class="star">*</span></label>
+        <input type="text" id="pod" name="pod" placeholder="เช่น SHANGHAI" required />
+        <div class="msg-err" data-for="pod">กรุณากรอก POD</div>
+      </div>
+
+      <div class="field">
+        <label class="q" for="booking">Booking No. <span class="star">*</span></label>
+        <input type="text" id="booking" name="booking" placeholder="เช่น HASLS22260100843" required />
+        <div class="msg-err" data-for="booking">กรุณากรอก Booking No.</div>
+      </div>
+    </div>
+
+    <div class="card section-title">
+      <h2>ข้อมูลตู้คอนเทนเนอร์ <span class="sub">เลือก SIZE แล้วกรอกเลขตู้ + STATUS F/E — กด “เพิ่มตู้” ได้หลายใบ</span></h2>
+      <div id="cntrList" class="cntr-list"></div>
+      <div id="cntrEmpty" class="cntr-empty">ยังไม่มีข้อมูลตู้ — กดปุ่ม “＋ เพิ่มตู้” ด้านล่าง</div>
+      <div class="msg-err" data-for="rows">กรุณาเพิ่มข้อมูลตู้อย่างน้อย 1 ใบ</div>
+      <div class="toolbar"><button type="button" class="btn-ghost" id="btnAdd">＋ เพิ่มตู้</button></div>
+    </div>
+
+    <div class="card">
+      <button type="submit" class="btn-primary" id="btnSubmit">ส่งข้อมูล</button>
+      <button type="button" class="btn-text" id="btnReset" style="margin-left:8px">ล้างฟอร์ม</button>
+    </div>
+  </form>
+
+  <div id="resultBox"></div>
+  <div class="foot">
+    เวอร์ชัน static — ประมวลผลในเบราว์เซอร์ทั้งหมด (ExcelJS + pdf.js) ไม่มีการส่งข้อมูลออกนอกเครื่อง<br/>
+    หมายเหตุ: ไฟล์ที่ดาวน์โหลดจะคงข้อความ/ตำแหน่งเซลล์/การผสานเซลล์ไว้ แต่สี/เส้นขอบบางส่วนอาจหาย
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3 id="modalTitle">เพิ่มข้อมูลตู้</h3>
+    <p class="hint">เลือกขนาดตู้ แล้วกรอกเลขตู้และสถานะ</p>
+    <div class="field">
+      <label class="q" for="mSize">SIZE <span class="star">*</span></label>
+      <select id="mSize"><option value="" disabled selected>— เลือกขนาด —</option></select>
+      <div class="msg-err" data-for="mSize">กรุณาเลือก SIZE</div>
+    </div>
+    <div class="field">
+      <label class="q" for="mCntr">Container Number <span class="star">*</span></label>
+      <input type="text" id="mCntr" placeholder="เช่น SKRU9905312" maxlength="20" />
+      <div class="msg-err" data-for="mCntr">กรุณากรอกเลขตู้ (รูปแบบ ABCD1234567)</div>
+    </div>
+    <div class="field">
+      <label class="q" for="mStatus">STATUS F/E <span class="star">*</span></label>
+      <select id="mStatus"><option value="" disabled selected>— เลือกสถานะ —</option></select>
+      <div class="msg-err" data-for="mStatus">กรุณาเลือกสถานะ</div>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn-ghost" id="mCancel">ยกเลิก</button>
+      <button type="button" class="btn-primary" id="mConfirm" style="padding:12px 22px">＋ เพิ่มตู้</button>
+      <button type="button" class="btn-primary" id="mConfirmMore" style="padding:12px 22px;background:var(--purple-dark)">เพิ่มแล้วเพิ่มต่อ</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+"use strict";
+
+/* ================= ค่าคงที่ / ตัวเลือกสำรอง ================= */
+const CFG_FALLBACK = {
+  terminals: [
+    "LCMT Company LTD, ( under LCB1 Group)  A0",
+    "ESCO (EASTERN SEA LCH CNTR TML/B3)",
+    "B5/C3 LCIT (LAEM CHABANG INTERNATIONAL TERMINAL CO., LTD)",
+    "A2 ( Thai Laemchabang Terminal, TLT / 허치슨 )",
+    "A3 (C1,C2) (Hutchison Laemchabang Terminal Limited, HLT)"
+  ],
+  sizes: ["20 GP","40 GP","40 HQ","20 RF","40 RF","20 UT","40 UT","20 TK","40 TK"],
+  statuses: ["FULL","EMPTY"]
+};
+
+const LINE_CODE = "HAL";
+const AGENT_NAME = "HEUNG-A";
+const CONTAINER_RE = /^[A-Z]{4}\d{7}$/;
+
+/* ================= ตารางจับคู่ข้อมูล -> Excel ================= */
+const TERMINALS = {
+  "LCMT Company LTD, ( under LCB1 Group)  A0": {
+    key:"A0", tpl:"templates/A0-SHORE.xlsx", out:"A0-SHORE.xlsx", sheet:"Sheet1",
+    header:{vessel:"E6", voy:"I6"},
+    table:{start:14, max:11, cols:{no:"A",container:"C",booking:"D",size:"E",type:"F",pod:"G"}}
+  },
+  "ESCO (EASTERN SEA LCH CNTR TML/B3)": {
+    key:"B3", tpl:"templates/B3-SHORE.xlsx", out:"B3-SHORE.xlsx", sheet:"CHORE CY",
+    header:{vessel:"C11", voy:"H11"},
+    table:{start:17, max:20, cols:{no:"A",container:"B",type:"C",size:"D",pod:"E",booking:"J"}}
+  },
+  "B5/C3 LCIT (LAEM CHABANG INTERNATIONAL TERMINAL CO., LTD)": {
+    key:"B5C3", tpl:"templates/B5C3-SHORE.xlsx", out:"B5C3-SHORE.xlsx", sheet:"Sheet1",
+    header:{},
+    table:{start:2, max:500, clearFirst:true,
+      cols:{no:"A",booking:"B",terminal:"C",pod:"D",agent:"E",vessel_voy:"F",container:"G",seal:"H",size_combo:"I"},
+      rowConst:{terminal:"LCB B5/C3"}}
+  },
+  "A2 ( Thai Laemchabang Terminal, TLT / 허치슨 )": {
+    key:"A2", tpl:"templates/A2-FORM-A.xlsx", out:"A2-FORM A.xlsx", sheet:"FORM A",
+    header:{vessel:"B8", voy:"I8"},
+    table:{start:12, max:13, cols:{no:"L",container:"M",size:"N",type:"O",vgm:"Q",agent:"R",pod:"S",booking:"T"}}
+  },
+  "A3 (C1,C2) (Hutchison Laemchabang Terminal Limited, HLT)": {
+    key:"A3C1C2", tpl:"templates/A3C1C2-HUTCHISON.xlsx", out:"A3C1C2-HUTCHISON.xlsx", sheet:"HPT",
+    header:{},
+    table:{start:10, max:19,
+      cols:{no:"A",line:"B",shipper:"C",size:"D",type:"E",container:"F",vessel:"G",voy:"H",pod:"I",booking:"K",seal:"L",status:"M",payment:"U"},
+      rowConst:{payment:"CREDIT"}}
+  }
+};
+
+let containers = [];
+let editIndex = -1;
+
+const $  = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+/* ================= helpers ================= */
+function splitSize(raw){
+  if(!raw) return ["",""];
+  const s = String(raw).replace(/\s+/g," ").trim();
+  let m = s.match(/^(\d{2})\s*([A-Za-z/]{1,4})?$/);
+  if(m) return [m[1], (m[2]||"").toUpperCase()];
+  const p = s.split(" ");
+  if(p.length === 2) return [p[0], p[1].toUpperCase()];
+  return [s, ""];
+}
+function statusCode(raw){
+  const s = String(raw||"").trim().toUpperCase();
+  if(s[0] === "F") return "F";
+  if(s[0] === "E") return "E";
+  return s;
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+}
+/* ExcelJS: ถ้าเป็นเซลล์ที่ถูกผสาน ให้เขียนที่เซลล์แม่ */
+function setCell(ws, addr, val){
+  if(val === null || val === undefined || val === "") return;
+  const cell = ws.getCell(addr);
+  const target = cell.isMerged ? cell.master : cell;
+  target.value = val;
+}
+function cellEmpty(v){
+  if(v === null || v === undefined) return true;
+  if(typeof v === "string") return !v.trim();
+  if(typeof v === "object" && "result" in v) return v.result === null || v.result === undefined || v.result === "";
+  return false;
+}
+
+/* ================= โหลดตัวเลือกจาก Check.xlsx ================= */
+async function loadConfig(){
+  let cfg = CFG_FALLBACK;
+  try{
+    const res = await fetch("Check.xlsx", {cache:"no-store"});
+    if(res.ok){
+      const wb = new ExcelJS.Workbook();
+      await wb.xlsx.load(await res.arrayBuffer());
+      const ws = wb.worksheets[0];
+      const T=[], S=[], ST=[]; let cur=null;
+      ws.eachRow({includeEmpty:false}, row=>{
+        const a = (row.getCell(1).text || "").trim().toLowerCase();
+        const b = (row.getCell(2).text || "").trim();
+        if(a){
+          cur = a.includes("terminal") ? T : a.includes("size") ? S : a.includes("status") ? ST : null;
+        }
+        if(b && cur) cur.push(b);
+      });
+      cfg = {
+        terminals: T.length ? T : CFG_FALLBACK.terminals,
+        sizes:     S.length ? S : CFG_FALLBACK.sizes,
+        statuses:  ST.length ? ST : CFG_FALLBACK.statuses
+      };
+    }
+  }catch(e){ /* ใช้ fallback */ }
+
+  fillSelect($("#terminal"), cfg.terminals, "— เลือกท่า —");
+  fillSelect($("#mSize"), cfg.sizes, "— เลือกขนาด —");
+  fillSelect($("#mStatus"), cfg.statuses, "— เลือกสถานะ —");
+}
+function fillSelect(sel, items, placeholder){
+  sel.innerHTML = "";
+  const o0 = document.createElement("option");
+  o0.value=""; o0.disabled=true; o0.selected=true; o0.textContent=placeholder;
+  sel.appendChild(o0);
+  (items||[]).forEach(v=>{
+    const o = document.createElement("option");
+    o.value=v; o.textContent=v; sel.appendChild(o);
+  });
+}
+
+/* ================= โมดัลเพิ่มตู้ ================= */
+function openModal(index){
+  editIndex = (typeof index === "number") ? index : -1;
+  const m = $("#modalBg"); clearErr(m);
+  if(editIndex >= 0){
+    const c = containers[editIndex];
+    $("#mSize").value=c.size; $("#mCntr").value=c.container; $("#mStatus").value=c.status;
+    $("#modalTitle").textContent = "แก้ไขข้อมูลตู้ #" + (editIndex+1);
+    $("#mConfirmMore").style.display = "none";
+    $("#mConfirm").textContent = "บันทึก";
+  }else{
+    $("#mSize").value=""; $("#mCntr").value=""; $("#mStatus").value="";
+    $("#modalTitle").textContent = "เพิ่มข้อมูลตู้";
+    $("#mConfirmMore").style.display = "";
+    $("#mConfirm").textContent = "＋ เพิ่มตู้";
+  }
+  m.classList.add("show");
+  setTimeout(()=>$("#mSize").focus(), 50);
+}
+function closeModal(){ $("#modalBg").classList.remove("show"); }
+function readModal(){
+  const size = $("#mSize").value.trim();
+  const container = $("#mCntr").value.trim().toUpperCase();
+  const status = $("#mStatus").value.trim();
+  const cnBad = !CONTAINER_RE.test(container);
+  setErr($("#mSize"), !size);
+  setErr($("#mStatus"), !status);
+  setErr($("#mCntr"), cnBad);
+  return (!size || !status || cnBad) ? null : {size, container, status};
+}
+function commitModal(keepOpen){
+  const data = readModal();
+  if(!data) return;
+  if(editIndex >= 0) containers[editIndex] = data;
+  else containers.push(data);
+  renderContainers();
+  if(keepOpen && editIndex < 0){
+    $("#mCntr").value = ""; clearErr($("#modalBg")); $("#mCntr").focus();
+  }else closeModal();
+}
+
+/* ================= รายการตู้ ================= */
+function renderContainers(){
+  const list = $("#cntrList"); list.innerHTML = "";
+  containers.forEach((c,i)=>{
+    const st = (c.status||"").toUpperCase();
+    const cls = st === "FULL" ? "f" : (st === "EMPTY" ? "e" : "");
+    const row = document.createElement("div");
+    row.className = "cntr-item";
+    row.innerHTML =
+      '<div class="idx">'+(i+1)+'</div>'+
+      '<div class="info"><div class="cn">'+escapeHtml(c.container)+'</div>'+
+      '<div class="meta"><span class="badge">'+escapeHtml(c.size)+'</span>'+
+      '<span class="badge '+cls+'">'+escapeHtml(st)+'</span></div></div>'+
+      '<button type="button" class="btn-text" data-edit="'+i+'">แก้ไข</button>'+
+      '<button type="button" class="x" data-del="'+i+'" title="ลบ">&times;</button>';
+    list.appendChild(row);
+  });
+  $("#cntrEmpty").style.display = containers.length ? "none" : "block";
+  if(containers.length) hideErr("rows");
+}
+
+/* ================= error helpers ================= */
+function setErr(el, bad){
+  el.classList.toggle("err", !!bad);
+  const box = $('.msg-err[data-for="'+el.id+'"]', el.closest(".field, .card, .modal"));
+  if(box) box.classList.toggle("show", !!bad);
+}
+function clearErr(scope){
+  $$(".err", scope).forEach(e=>e.classList.remove("err"));
+  $$(".msg-err.show", scope).forEach(e=>e.classList.remove("show"));
+}
+function hideErr(name){ const b=$('.msg-err[data-for="'+name+'"]'); if(b) b.classList.remove("show"); }
+function showErr(name){ const b=$('.msg-err[data-for="'+name+'"]'); if(b) b.classList.add("show"); }
+
+/* ================= สร้างแถวข้อมูล ================= */
+function buildRows(p){
+  const vessel = p.vessel.trim(), voy = p.voy.trim();
+  const vv = (vessel || voy) ? (vessel + " V." + voy).trim() : "";
+  return p.rows.map(it=>{
+    const raw = (it.size || "").trim();
+    const [sn, st] = splitSize(raw);
+    return {
+      container:(it.container||"").trim().toUpperCase(),
+      size: sn, type: st,
+      size_combo: raw.replace(/\s+/g,""), size_raw: raw,
+      status:(it.status||"").trim().toUpperCase(),
+      vessel, voy, vessel_voy: vv,
+      shipper:p.shipper.trim(), pod:p.pod.trim(), booking:p.booking.trim(),
+      terminal:p.terminal, agent:AGENT_NAME, line:LINE_CODE,
+      seal:(it.seal||"").trim(), vgm:(it.vgm||"").trim()
+    };
+  });
+}
+
+/* ================= เขียนลงแม่แบบ Excel ================= */
+async function fillTemplate(conf, rows){
+  const res = await fetch(conf.tpl, {cache:"no-store"});
+  if(!res.ok) throw new Error("โหลดไฟล์แม่แบบไม่ได้: " + conf.tpl + " (HTTP " + res.status + ")");
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(await res.arrayBuffer());
+
+  let ws = wb.getWorksheet(conf.sheet);
+  const warnings = [];
+  if(!ws){ ws = wb.worksheets[0]; warnings.push("ไม่พบชีต '"+conf.sheet+"' ใช้ชีต '"+ws.name+"' แทน"); }
+
+  if(conf.header.vessel) setCell(ws, conf.header.vessel, rows[0].vessel);
+  if(conf.header.voy)    setCell(ws, conf.header.voy,    rows[0].voy);
+
+  const t = conf.table, cols = t.cols, rc = t.rowConst || {};
+
+  if(t.clearFirst){
+    let r = t.start;
+    while(r < t.start + t.max){
+      const cv = ws.getCell(cols.container + r).value;
+      if(cellEmpty(cv)) break;
+      Object.values(cols).forEach(c=>{
+        const cell = ws.getCell(c + r);
+        (cell.isMerged ? cell.master : cell).value = null;
+      });
+      r++;
+    }
+  }
+
+  let written = 0;
+  for(let i=0; i<rows.length; i++){
+    if(i >= t.max){ warnings.push("แม่แบบรองรับสูงสุด "+t.max+" ตู้ ตู้ที่ "+(i+1)+" เป็นต้นไปไม่ถูกเขียน"); break; }
+    const rec = rows[i], R = t.start + i;
+    for(const field in cols){
+      const addr = cols[field] + R;
+      let val;
+      if(field in rc)                 val = rc[field];
+      else if(field === "no")         val = i + 1;
+      else if(field === "line")       val = LINE_CODE;
+      else if(field === "payment")    val = "CREDIT";
+      else if(field === "status")     val = statusCode(rec.status);
+      else                            val = rec[field];
+      setCell(ws, addr, val);
+    }
+    written++;
+  }
+
+  const outBuf = await wb.xlsx.writeBuffer();
+  return { buf: outBuf, written, warnings };
+}
+
+/* ================= validate + submit ================= */
+function validateForm(){
+  let ok = true;
+  ["terminal","vessel","voy","shipper","pod","booking"].forEach(id=>{
+    const el = $("#"+id);
+    const bad = !el.value.trim();
+    setErr(el, bad); if(bad) ok = false;
+  });
+  if(containers.length === 0){ showErr("rows"); ok = false; }
+  return ok;
+}
+
+function triggerDownload(buf, name){
+  const blob = new Blob([buf], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+
+async function submitForm(ev){
+  ev.preventDefault();
+  $("#resultBox").innerHTML = "";
+  if(!validateForm()){
+    const f = $(".err"); if(f) f.scrollIntoView({behavior:"smooth", block:"center"});
+    return;
+  }
+  const terminal = $("#terminal").value;
+  const conf = TERMINALS[terminal];
+  if(!conf){ showResultError("ไม่รู้จัก TERMINAL: " + terminal); return; }
+
+  const payload = {
+    terminal,
+    vessel:$("#vessel").value, voy:$("#voy").value, shipper:$("#shipper").value,
+    pod:$("#pod").value, booking:$("#booking").value,
+    rows: containers.map(c=>({size:c.size, container:c.container, status:c.status}))
+  };
+
+  const btn = $("#btnSubmit");
+  btn.disabled = true; btn.textContent = "กำลังสร้างไฟล์…";
+  try{
+    const rows = buildRows(payload);
+    const { buf, written, warnings } = await fillTemplate(conf, rows);
+    triggerDownload(buf, conf.out);
+    showResult(conf.out, written, warnings);
+    window.scrollTo({top:document.body.scrollHeight, behavior:"smooth"});
+  }catch(e){
+    console.error(e);
+    let msg = e.message || String(e);
+    if(/Failed to fetch|NetworkError|HTTP 0/i.test(msg))
+      msg = "โหลดไฟล์แม่แบบไม่ได้ — ต้องเปิดหน้านี้ผ่าน http/https (GitHub Pages หรือ `python -m http.server`) ไม่ใช่ดับเบิลคลิกไฟล์";
+    showResultError(msg);
+  }finally{
+    btn.disabled = false; btn.textContent = "ส่งข้อมูล";
+  }
+}
+
+function showResult(outFile, rows, warnings){
+  const warn = (warnings && warnings.length)
+    ? '<ul>'+warnings.map(w=>'<li>'+escapeHtml(w)+'</li>').join("")+'</ul>' : "";
+  $("#resultBox").innerHTML =
+    '<div class="result">'+
+      '<h2>✓ สร้างไฟล์สำเร็จ</h2>'+
+      '<div>ไฟล์ผลลัพธ์: <span class="file">'+escapeHtml(outFile)+'</span> (ดาวน์โหลดอัตโนมัติแล้ว)</div>'+
+      '<div>จำนวนตู้ที่เขียน: '+rows+' ใบ</div>'+ warn +
+    '</div>';
+}
+function showResultError(msg){
+  $("#resultBox").innerHTML =
+    '<div class="result" style="background:#fce8e6;border-color:#f3b8b2">'+
+      '<h2 style="color:#c5221f">✕ เกิดข้อผิดพลาด</h2><div>'+escapeHtml(msg)+'</div>'+
+    '</div>';
+}
+
+/* ================= นำเข้าจาก PDF (pdf.js + regex, ไม่ใช้ AI) ================= */
+if(window.pdfjsLib){
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+}
+
+const RE_CONTAINER = /\b([A-Z]{4})[ \-]?(\d{7})\b/g;
+const RE_BOOKING   = /(?:BOOKING\s*NO|BKG\s*NO|BOOKING|BKG|B\/?KG)[\s.:#]*([A-Z0-9\-]{6,})/i;
+const RE_VOY       = /(?:VOYAGE|VOY|V\.)[\s.:#]*([0-9]{2,4}[A-Z]?)/i;
+const RE_VESSEL    = /(?:VESSEL|VSL|M\.?V\.?|BY\s+VESSEL|ชื่อเรือ)[\s.:#]*([A-Z][A-Z0-9\-'. ]{2,40}?)(?:\s+(?:VOY|V\.|VOYAGE)\b|$)/i;
+const RE_POD       = /(?:PORT\s*OF\s*DISCHARGE|DISCHARGE\s*PORT|DISCH\s*PORT|POD)[\s.:#]*([A-Za-z][A-Za-z0-9\-,'/() ]{2,40})/i;
+const RE_SHIPPER   = /(?:SHIPPER\s*NAME|SHIPPER|ผู้ส่งออก)[\s.:#]*([A-Za-z0-9][A-Za-z0-9\-,.'&/() ]{3,60})/i;
+const RE_SIZE      = /\b(20|40|45)\s?'?\s?(GP|DC|HQ|HC|RF|RH|UT|OT|TK|FR|PL)\b/i;
+const STATUS_KW = {
+  FULL:  ["FULL","F/L","LADEN","ตู้หนัก","บรรจุ"],
+  EMPTY: ["EMPTY"," MT ","ตู้เปล่า"]
+};
+
+function cleanStr(s){ return s.replace(/\s{2,}/g," ").replace(/^[\s.:\-]+|[\s.:\-]+$/g,"").trim(); }
+
+async function pdfToText(file){
+  const data = new Uint8Array(await file.arrayBuffer());
+  const pdf = await pdfjsLib.getDocument({data}).promise;
+  const parts = [];
+  for(let i=1; i<=pdf.numPages; i++){
+    const page = await pdf.getPage(i);
+    const tc = await page.getTextContent();
+    parts.push(tc.items.map(x=>x.str).join(" "));
+  }
+  return parts.join("\n");
+}
+
+function parseText(text){
+  const up = text.toUpperCase();
+  const first = re => { const m = text.match(re); return m ? cleanStr(m[1]) : ""; };
+
+  let docSize = "";
+  const sm = up.match(RE_SIZE);
+  if(sm){
+    let code = sm[2].toUpperCase();
+    code = ({DC:"GP",HC:"HQ",RH:"RF"})[code] || code;
+    docSize = sm[1] + " " + code;
+  }
+
+  const containers = [], seen = new Set();
+  let m;
+  RE_CONTAINER.lastIndex = 0;
+  while((m = RE_CONTAINER.exec(up))){
+    const cn = m[1] + m[2];
+    if(seen.has(cn)) continue;
+    seen.add(cn);
+    const win = up.slice(Math.max(0, m.index-60), m.index + m[0].length + 60);
+    let size = "";
+    const wsz = win.match(RE_SIZE);
+    if(wsz){
+      let code = wsz[2].toUpperCase();
+      code = ({DC:"GP",HC:"HQ",RH:"RF"})[code] || code;
+      size = wsz[1] + " " + code;
+    }
+    let status = "";
+    for(const k in STATUS_KW){ if(STATUS_KW[k].some(w=>win.includes(w))){ status = k; break; } }
+    containers.push({container:cn, size:size || docSize, status});
+  }
+
+  return {
+    vessel: first(RE_VESSEL), voy: first(RE_VOY), shipper: first(RE_SHIPPER),
+    pod: first(RE_POD), booking: first(RE_BOOKING), containers
+  };
+}
+
+function mergeSuggest(dst, src){
+  ["vessel","voy","shipper","pod","booking"].forEach(k=>{ if(!dst[k] && src[k]) dst[k] = src[k]; });
+  const have = new Set(dst.containers.map(c=>c.container));
+  src.containers.forEach(c=>{ if(!have.has(c.container)){ dst.containers.push(c); have.add(c.container); } });
+}
+
+async function importPdf(files){
+  const status = $("#pdfStatus");
+  status.hidden = false; status.textContent = "กำลังอ่าน PDF…";
+  const merged = {vessel:"",voy:"",shipper:"",pod:"",booking:"",containers:[]};
+  const done = [];
+  for(const f of files){
+    try{
+      const txt = await pdfToText(f);
+      mergeSuggest(merged, parseText(txt));
+      done.push(f.name);
+    }catch(e){ console.error(e); }
+  }
+  if($("#vessel").value.trim()==="" && merged.vessel) $("#vessel").value = merged.vessel;
+  if($("#voy").value.trim()==="" && merged.voy)       $("#voy").value = merged.voy;
+  if($("#shipper").value.trim()==="" && merged.shipper) $("#shipper").value = merged.shipper;
+  if($("#pod").value.trim()==="" && merged.pod)       $("#pod").value = merged.pod;
+  if($("#booking").value.trim()==="" && merged.booking) $("#booking").value = merged.booking;
+  merged.containers.forEach(c=>{
+    const cn = (c.container||"").toUpperCase();
+    if(!CONTAINER_RE.test(cn)) return;
+    if(containers.some(x=>x.container === cn)) return;
+    containers.push({size:c.size||"", container:cn, status:c.status||""});
+  });
+  renderContainers();
+  status.textContent = "อ่านแล้ว: " + (done.join(", ") || "-") + " — โปรดตรวจสอบ/แก้ไขก่อนกดส่ง";
+}
+
+/* ================= init ================= */
+document.addEventListener("DOMContentLoaded", ()=>{
+  const libOk = !!window.ExcelJS;
+  $("#libStatus").textContent = libOk
+    ? "พร้อมใช้งาน (ExcelJS โหลดสำเร็จ)"
+    : "โหลด ExcelJS ไม่สำเร็จ — ตรวจสอบอินเทอร์เน็ต แล้วรีเฟรช";
+  $("#libStatus").style.color = libOk ? "#137333" : "var(--danger)";
+  if(!window.pdfjsLib){
+    $("#pdfInput").parentElement.style.display = "none";
+  }
+
+  loadConfig();
+  renderContainers();
+
+  $("#form").addEventListener("submit", submitForm);
+  $("#btnAdd").addEventListener("click", ()=>openModal(-1));
+  $("#pdfInput").addEventListener("change", e=>{
+    if(e.target.files && e.target.files.length) importPdf(Array.from(e.target.files));
+    e.target.value = "";
+  });
+  $("#btnReset").addEventListener("click", ()=>{
+    if(!confirm("ล้างข้อมูลทั้งหมดในฟอร์ม?")) return;
+    $("#form").reset(); containers = []; renderContainers();
+    $("#resultBox").innerHTML = ""; clearErr(document);
+    $("#pdfStatus").hidden = true;
+  });
+
+  $("#mCancel").addEventListener("click", closeModal);
+  $("#mConfirm").addEventListener("click", ()=>commitModal(false));
+  $("#mConfirmMore").addEventListener("click", ()=>commitModal(true));
+  $("#modalBg").addEventListener("click", e=>{ if(e.target === $("#modalBg")) closeModal(); });
+  document.addEventListener("keydown", e=>{ if(e.key === "Escape") closeModal(); });
+
+  $("#cntrList").addEventListener("click", e=>{
+    const del = e.target.getAttribute("data-del");
+    const ed  = e.target.getAttribute("data-edit");
+    if(del !== null){ containers.splice(+del,1); renderContainers(); }
+    else if(ed !== null){ openModal(+ed); }
+  });
+
+  $$("#form input, #form select").forEach(el=>{
+    el.addEventListener("input", ()=>setErr(el,false));
+    el.addEventListener("change", ()=>setErr(el,false));
+  });
+});
+</script>
+</body>
+</html>

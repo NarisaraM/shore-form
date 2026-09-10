@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ระบบแบบฟอร์มสำรวจข้อมูล SHORE</title>
+<style>
+  :root{
+    --purple:#673ab7;
+    --purple-dark:#512da8;
+    --purple-light:#efe9f8;
+    --bg:#f0ebf8;
+    --card:#ffffff;
+    --line:#dadce0;
+    --text:#202124;
+    --muted:#5f6368;
+    --danger:#d93025;
+    --radius:12px;
+    --shadow:0 1px 3px rgba(60,64,67,.15),0 4px 12px rgba(60,64,67,.08);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Segoe UI",Roboto,"Helvetica Neue","Noto Sans Thai",Tahoma,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    line-height:1.5;
+    padding:0 12px 64px;
+  }
+  .wrap{max-width:700px;margin:0 auto}
+
+  /* ---- หัวเรื่อง ---- */
+  .hero{
+    background:var(--card);
+    border-top:10px solid var(--purple);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    margin-top:24px;
+    padding:24px 24px 20px;
+  }
+  .hero h1{margin:0 0 6px;font-size:26px;font-weight:600}
+  .hero p{margin:0;color:var(--muted);font-size:14px}
+  .hero .req-note{margin-top:14px;color:var(--danger);font-size:13px}
+
+  /* ---- การ์ด ---- */
+  .card{
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    margin-top:16px;
+    padding:22px 24px;
+    border-left:6px solid transparent;
+  }
+  .card.section-title{border-left-color:var(--purple)}
+  .card h2{margin:0 0 4px;font-size:18px;font-weight:600}
+  .card h2 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:4px}
+
+  .field{margin-top:20px}
+  .field:first-child{margin-top:6px}
+  label.q{display:block;font-size:15px;font-weight:500;margin-bottom:10px}
+  label.q .star{color:var(--danger);margin-left:3px}
+
+  input[type=text],select{
+    width:100%;
+    font-size:15px;
+    font-family:inherit;
+    color:var(--text);
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:11px 12px;
+    outline:none;
+    transition:border-color .15s,box-shadow .15s;
+  }
+  input[type=text]:focus,select:focus{
+    border-color:var(--purple);
+    box-shadow:0 0 0 3px rgba(103,58,183,.15);
+  }
+  input.err,select.err{border-color:var(--danger);box-shadow:0 0 0 3px rgba(217,48,37,.12)}
+  .msg-err{color:var(--danger);font-size:13px;margin-top:6px;display:none}
+  .msg-err.show{display:block}
+
+  /* ---- ปุ่ม ---- */
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;font-size:15px}
+  .btn-primary{
+    background:var(--purple);color:#fff;padding:12px 30px;font-weight:600;
+    box-shadow:0 1px 2px rgba(60,64,67,.3);
+  }
+  .btn-primary:hover{background:var(--purple-dark)}
+  .btn-primary:disabled{background:#b6a5da;cursor:default}
+  .btn-ghost{
+    background:transparent;color:var(--purple);padding:10px 16px;font-weight:600;
+    border:1px solid var(--line);
+  }
+  .btn-ghost:hover{background:var(--purple-light)}
+  .btn-text{background:transparent;color:var(--purple);padding:8px 4px;font-weight:600}
+  .btn-text:hover{text-decoration:underline}
+
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+
+  /* ---- รายการตู้ ---- */
+  .cntr-list{margin-top:8px;display:flex;flex-direction:column;gap:10px}
+  .cntr-item{
+    display:flex;align-items:center;gap:12px;
+    border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fafafa;
+  }
+  .cntr-item .idx{
+    flex:none;width:28px;height:28px;border-radius:50%;
+    background:var(--purple);color:#fff;font-size:13px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .cntr-item .info{flex:1;min-width:0}
+  .cntr-item .info .cn{font-weight:600;font-size:15px;word-break:break-all}
+  .cntr-item .info .meta{font-size:13px;color:var(--muted)}
+  .cntr-item .x{
+    flex:none;background:transparent;color:var(--muted);font-size:20px;
+    width:32px;height:32px;border-radius:50%;line-height:1;
+  }
+  .cntr-item .x:hover{background:#f1d9d6;color:var(--danger)}
+  .cntr-empty{color:var(--muted);font-size:14px;padding:10px 2px}
+
+  .badge{
+    display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:20px;
+    background:var(--purple-light);color:var(--purple-dark);margin-right:6px;
+  }
+  .badge.e{background:#fce8e6;color:#c5221f}
+  .badge.f{background:#e6f4ea;color:#137333}
+
+  /* ---- โมดัล ---- */
+  .modal-bg{
+    position:fixed;inset:0;background:rgba(32,33,36,.55);
+    display:none;align-items:center;justify-content:center;padding:16px;z-index:50;
+  }
+  .modal-bg.show{display:flex}
+  .modal{
+    background:#fff;border-radius:14px;width:100%;max-width:440px;
+    box-shadow:0 8px 32px rgba(0,0,0,.3);padding:24px;
+    border-top:8px solid var(--purple);
+  }
+  .modal h3{margin:0 0 4px;font-size:19px}
+  .modal p.hint{margin:0 0 8px;font-size:13px;color:var(--muted)}
+  .modal .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}
+
+  /* ---- สรุปผล ---- */
+  .result{
+    background:#e6f4ea;border:1px solid #b7dfc2;border-radius:var(--radius);
+    padding:22px 24px;margin-top:16px;
+  }
+  .result h2{margin:0 0 8px;color:#137333;font-size:19px}
+  .result .file{font-weight:600;word-break:break-all}
+  .result ul{margin:10px 0 0;padding-left:20px;color:#8a6d00}
+  .result .dl{margin-top:16px;display:inline-block}
+
+  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:28px}
+
+  @media (max-width:520px){
+    .hero{padding:20px 16px}
+    .card{padding:18px 16px}
+    .hero h1{font-size:22px}
+    .btn-primary{width:100%}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>ระบบแบบฟอร์มสำรวจข้อมูล SHORE</h1>
+    <p>กรอกข้อมูลทีละขั้นตอน ระบบจะนำข้อมูลไปกรอกลงไฟล์ Excel ของท่าที่เลือกให้อัตโนมัติ (LINE = HAL)</p>
+    <div class="toolbar">
+      <button type="button" class="btn-ghost" id="btnPdf">📄 นำเข้าข้อมูลจาก PDF (โฟลเดอร์ pdf_in/)</button>
+    </div>
+    <div class="req-note">* จำเป็นต้องกรอก</div>
+  </div>
+
+  <form id="form" autocomplete="off">
+
+    <!-- ====== ส่วนที่ 1 : ข้อมูลหลัก ====== -->
+    <div class="card section-title">
+      <h2>ข้อมูลการจอง <span class="sub">Booking / Vessel Information</span></h2>
+
+      <div class="field">
+        <label class="q" for="terminal">TERMINAL <span class="star">*</span></label>
+        <select id="terminal" name="terminal" required>
+          <option value="" disabled selected>— เลือกท่า —</option>
+        </select>
+        <div class="msg-err" data-for="terminal">กรุณาเลือก TERMINAL</div>
+      </div>
+
+      <div class="field">
+        <label class="q" for="vessel">Vessel (ชื่อเรือ) <span class="star">*</span></label>
+        <input type="text" id="vessel" name="vessel" placeholder="เช่น HEUNG-A BANGKOK" required />
+        <div class="msg-err" data-for="vessel">กรุณากรอกชื่อเรือ</div>
+      </div>
+
+      <div class="field">
+        <label class="q" for="voy">Voy. (เที่ยวเรือ) <span class="star">*</span></label>
+        <input type="text" id="voy" name="voy" placeholder="เช่น 2512N" required />
+        <div class="msg-err" data-for="voy">กรุณากรอก Voy.</div>
+      </div>
+
+      <div class="field">
+        <label class="q" for="shipper">Shipper name (ชื่อผู้ส่งออก) <span class="star">*</span></label>
+        <input type="text" id="shipper" name="shipper" placeholder="เช่น HI HAPPY TRADING CO., LTD." required />
+        <div class="msg-err" data-for="shipper">กรุณากรอกชื่อ Shipper</div>
+      </div>
+
+      <div class="field">
+        <label class="q" for="pod">POD (ปลายทาง) <span class="star">*</span></label>
+        <input type="text" id="pod" name="pod" placeholder="เช่น SHANGHAI" required />
+        <div class="msg-err" data-for="pod">กรุณากรอก POD</div>
+      </div>
+
+      <div class="field">
+        <label class="q" for="booking">Booking No. <span class="star">*</span></label>
+        <input type="text" id="booking" name="booking" placeholder="เช่น HASLS22260100843" required />
+        <div class="msg-err" data-for="booking">กรุณากรอก Booking No.</div>
+      </div>
+    </div>
+
+    <!-- ====== ส่วนที่ 2 : ตู้คอนเทนเนอร์ ====== -->
+    <div class="card section-title">
+      <h2>ข้อมูลตู้คอนเทนเนอร์ <span class="sub">เลือก SIZE แล้วกรอกเลขตู้ + STATUS F/E — กด “เพิ่มตู้” ได้หลายใบ</span></h2>
+
+      <div id="cntrList" class="cntr-list"></div>
+      <div id="cntrEmpty" class="cntr-empty">ยังไม่มีข้อมูลตู้ — กดปุ่ม “＋ เพิ่มตู้” ด้านล่าง</div>
+      <div class="msg-err" data-for="rows">กรุณาเพิ่มข้อมูลตู้อย่างน้อย 1 ใบ</div>
+
+      <div class="toolbar">
+        <button type="button" class="btn-ghost" id="btnAdd">＋ เพิ่มตู้</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <button type="submit" class="btn-primary" id="btnSubmit">ส่งข้อมูล</button>
+      <button type="button" class="btn-text" id="btnReset" style="margin-left:8px">ล้างฟอร์ม</button>
+    </div>
+  </form>
+
+  <div id="resultBox"></div>
+
+  <div class="foot">ระบบทำงานภายในเครื่อง (localhost) • ข้อมูลถูกเขียนลงโฟลเดอร์ output/</div>
+</div>
+
+<!-- ====== โมดัลเพิ่มตู้ ====== -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3 id="modalTitle">เพิ่มข้อมูลตู้</h3>
+    <p class="hint">เลือกขนาดตู้ แล้วกรอกเลขตู้และสถานะ</p>
+
+    <div class="field">
+      <label class="q" for="mSize">SIZE <span class="star">*</span></label>
+      <select id="mSize"><option value="" disabled selected>— เลือกขนาด —</option></select>
+      <div class="msg-err" data-for="mSize">กรุณาเลือก SIZE</div>
+    </div>
+
+    <div class="field">
+      <label class="q" for="mCntr">Container Number <span class="star">*</span></label>
+      <input type="text" id="mCntr" placeholder="เช่น SKRU9905312" maxlength="20" />
+      <div class="msg-err" data-for="mCntr">กรุณากรอกเลขตู้ (รูปแบบ ABCD1234567)</div>
+    </div>
+
+    <div class="field">
+      <label class="q" for="mStatus">STATUS F/E <span class="star">*</span></label>
+      <select id="mStatus"><option value="" disabled selected>— เลือกสถานะ —</option></select>
+      <div class="msg-err" data-for="mStatus">กรุณาเลือกสถานะ</div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn-ghost" id="mCancel">ยกเลิก</button>
+      <button type="button" class="btn-primary" id="mConfirm" style="padding:12px 22px">＋ เพิ่มตู้</button>
+      <button type="button" class="btn-primary" id="mConfirmMore" style="padding:12px 22px;background:var(--purple-dark)">เพิ่มแล้วเพิ่มต่อ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const CFG_FALLBACK = {
+  terminals: [
+    "LCMT Company LTD, ( under LCB1 Group)  A0",
+    "ESCO (EASTERN SEA LCH CNTR TML/B3)",
+    "B5/C3 LCIT (LAEM CHABANG INTERNATIONAL TERMINAL CO., LTD)",
+    "A2 ( Thai Laemchabang Terminal, TLT / 허치슨 )",
+    "A3 (C1,C2) (Hutchison Laemchabang Terminal Limited, HLT)"
+  ],
+  sizes: ["20 GP","40 GP","40 HQ","20 RF","40 RF","20 UT","40 UT","20 TK","40 TK"],
+  statuses: ["FULL","EMPTY"]
+};
+
+const CONTAINER_RE = /^[A-Z]{4}\d{7}$/;
+
+let containers = [];      // [{size, container, status}]
+let editIndex = -1;       // -1 = เพิ่มใหม่, >=0 = กำลังแก้ไข
+
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+/* ---------- โหลด config ---------- */
+async function loadConfig(){
+  let cfg = CFG_FALLBACK;
+  try{
+    const r = await fetch("/api/config", {cache:"no-store"});
+    if(r.ok){ cfg = await r.json(); }
+  }catch(e){ /* ใช้ fallback */ }
+
+  fillSelect($("#terminal"), cfg.terminals, "— เลือกท่า —");
+  fillSelect($("#mSize"), cfg.sizes, "— เลือกขนาด —");
+  fillSelect($("#mStatus"), cfg.statuses, "— เลือกสถานะ —");
+}
+
+function fillSelect(sel, items, placeholder){
+  sel.innerHTML = "";
+  const op0 = document.createElement("option");
+  op0.value = ""; op0.disabled = true; op0.selected = true; op0.textContent = placeholder;
+  sel.appendChild(op0);
+  (items||[]).forEach(v=>{
+    const o = document.createElement("option");
+    o.value = v; o.textContent = v;
+    sel.appendChild(o);
+  });
+}
+
+/* ---------- โมดัล ---------- */
+function openModal(index){
+  editIndex = (typeof index === "number") ? index : -1;
+  const m = $("#modalBg");
+  clearErr(m);
+  if(editIndex >= 0){
+    const c = containers[editIndex];
+    $("#mSize").value = c.size;
+    $("#mCntr").value = c.container;
+    $("#mStatus").value = c.status;
+    $("#modalTitle").textContent = "แก้ไขข้อมูลตู้ #" + (editIndex+1);
+    $("#mConfirmMore").style.display = "none";
+    $("#mConfirm").textContent = "บันทึก";
+  }else{
+    $("#mSize").value = ""; $("#mCntr").value = ""; $("#mStatus").value = "";
+    $("#modalTitle").textContent = "เพิ่มข้อมูลตู้";
+    $("#mConfirmMore").style.display = "";
+    $("#mConfirm").textContent = "＋ เพิ่มตู้";
+  }
+  m.classList.add("show");
+  setTimeout(()=>$("#mSize").focus(), 50);
+}
+function closeModal(){ $("#modalBg").classList.remove("show"); }
+
+function readModal(){
+  const size = $("#mSize").value.trim();
+  const container = $("#mCntr").value.trim().toUpperCase();
+  const status = $("#mStatus").value.trim();
+  let ok = true;
+  setErr($("#mSize"), !size);
+  setErr($("#mStatus"), !status);
+  const cnBad = !CONTAINER_RE.test(container);
+  setErr($("#mCntr"), cnBad);
+  if(!size || !status || cnBad) ok = false;
+  return ok ? {size, container, status} : null;
+}
+
+function commitModal(keepOpen){
+  const data = readModal();
+  if(!data) return;
+  if(editIndex >= 0){
+    containers[editIndex] = data;
+  }else{
+    containers.push(data);
+  }
+  renderContainers();
+  if(keepOpen && editIndex < 0){
+    $("#mCntr").value = "";
+    clearErr($("#modalBg"));
+    $("#mCntr").focus();
+  }else{
+    closeModal();
+  }
+}
+
+/* ---------- แสดงรายการตู้ ---------- */
+function renderContainers(){
+  const list = $("#cntrList");
+  list.innerHTML = "";
+  containers.forEach((c, i)=>{
+    const row = document.createElement("div");
+    row.className = "cntr-item";
+    const st = (c.status||"").toUpperCase();
+    const cls = st === "FULL" ? "f" : (st === "EMPTY" ? "e" : "");
+    row.innerHTML =
+      '<div class="idx">'+(i+1)+'</div>'+
+      '<div class="info">'+
+        '<div class="cn">'+escapeHtml(c.container)+'</div>'+
+        '<div class="meta"><span class="badge">'+escapeHtml(c.size)+'</span>'+
+        '<span class="badge '+cls+'">'+escapeHtml(st)+'</span></div>'+
+      '</div>'+
+      '<button type="button" class="btn-text" data-edit="'+i+'">แก้ไข</button>'+
+      '<button type="button" class="x" data-del="'+i+'" title="ลบ">&times;</button>';
+    list.appendChild(row);
+  });
+  $("#cntrEmpty").style.display = containers.length ? "none" : "block";
+  if(containers.length) hideErr("rows");
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[m]));
+}
+
+/* ---------- error helpers ---------- */
+function setErr(el, bad){
+  el.classList.toggle("err", !!bad);
+  const box = $('.msg-err[data-for="'+el.id+'"]', el.closest(".field, .card, .modal"));
+  if(box) box.classList.toggle("show", !!bad);
+}
+function clearErr(scope){
+  $$(".err", scope).forEach(e=>e.classList.remove("err"));
+  $$(".msg-err.show", scope).forEach(e=>e.classList.remove("show"));
+}
+function hideErr(name){
+  const b = $('.msg-err[data-for="'+name+'"]');
+  if(b) b.classList.remove("show");
+}
+function showErr(name){
+  const b = $('.msg-err[data-for="'+name+'"]');
+  if(b) b.classList.add("show");
+}
+
+/* ---------- validate + submit ---------- */
+function validateForm(){
+  let ok = true;
+  ["terminal","vessel","voy","shipper","pod","booking"].forEach(id=>{
+    const el = $("#"+id);
+    const bad = !el.value.trim();
+    setErr(el, bad);
+    if(bad) ok = false;
+  });
+  if(containers.length === 0){ showErr("rows"); ok = false; }
+  return ok;
+}
+
+async function submitForm(ev){
+  ev.preventDefault();
+  $("#resultBox").innerHTML = "";
+  if(!validateForm()){
+    const firstErr = $(".err");
+    if(firstErr) firstErr.scrollIntoView({behavior:"smooth", block:"center"});
+    return;
+  }
+  const payload = {
+    terminal: $("#terminal").value,
+    vessel:   $("#vessel").value.trim(),
+    voy:      $("#voy").value.trim(),
+    shipper:  $("#shipper").value.trim(),
+    pod:      $("#pod").value.trim(),
+    booking:  $("#booking").value.trim(),
+    rows:     containers.map(c => ({size:c.size, container:c.container, status:c.status}))
+  };
+
+  const btn = $("#btnSubmit");
+  btn.disabled = true; btn.textContent = "กำลังบันทึก...";
+  try{
+    const r = await fetch("/api/submit", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+    if(data.ok){
+      showResult(data);
+      window.scrollTo({top:document.body.scrollHeight, behavior:"smooth"});
+    }else{
+      showResultError(data.error || "บันทึกไม่สำเร็จ");
+    }
+  }catch(e){
+    showResultError("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — ตรวจสอบว่ารัน run.py อยู่หรือไม่");
+  }finally{
+    btn.disabled = false; btn.textContent = "ส่งข้อมูล";
+  }
+}
+
+function showResult(data){
+  const warn = (data.warnings && data.warnings.length)
+    ? '<ul>'+data.warnings.map(w=>'<li>'+escapeHtml(w)+'</li>').join("")+'</ul>' : "";
+  $("#resultBox").innerHTML =
+    '<div class="result">'+
+      '<h2>✓ บันทึกข้อมูลสำเร็จ</h2>'+
+      '<div>ไฟล์ผลลัพธ์: <span class="file">'+escapeHtml(data.out_file)+'</span></div>'+
+      '<div>จำนวนตู้ที่เขียน: '+data.rows+' ใบ</div>'+
+      warn+
+      '<a class="btn-primary dl" href="'+data.download+'" download>⬇ ดาวน์โหลดไฟล์ Excel</a>'+
+    '</div>';
+  // ดาวน์โหลดอัตโนมัติ
+  const a = document.createElement("a");
+  a.href = data.download; a.download = data.out_file;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+function showResultError(msg){
+  $("#resultBox").innerHTML =
+    '<div class="result" style="background:#fce8e6;border-color:#f3b8b2">'+
+      '<h2 style="color:#c5221f">✕ เกิดข้อผิดพลาด</h2>'+
+      '<div>'+escapeHtml(msg)+'</div>'+
+    '</div>';
+}
+
+/* ---------- นำเข้าจาก PDF ---------- */
+async function importPdf(){
+  const btn = $("#btnPdf");
+  const old = btn.textContent;
+  btn.disabled = true; btn.textContent = "กำลังอ่าน PDF...";
+  try{
+    const r = await fetch("/api/parse-pdf", {method:"POST"});
+    const data = await r.json();
+    if(!data.ok){
+      alert(data.error || "อ่าน PDF ไม่สำเร็จ");
+      return;
+    }
+    const s = data.suggestions || {};
+    if(s.vessel)  $("#vessel").value  = s.vessel;
+    if(s.voy)     $("#voy").value     = s.voy;
+    if(s.shipper) $("#shipper").value = s.shipper;
+    if(s.pod)     $("#pod").value     = s.pod;
+    if(s.booking) $("#booking").value = s.booking;
+    (s.containers || []).forEach(c=>{
+      const cn = (c.container||"").toUpperCase();
+      if(!CONTAINER_RE.test(cn)) return;
+      if(containers.some(x=>x.container === cn)) return;
+      containers.push({
+        size: c.size || "",
+        container: cn,
+        status: c.status || ""
+      });
+    });
+    renderContainers();
+    alert("อ่านไฟล์: " + (data.files||[]).join(", ") +
+          "\nโปรดตรวจสอบ/แก้ไขข้อมูลก่อนกดส่ง");
+  }catch(e){
+    alert("เรียก /api/parse-pdf ไม่ได้");
+  }finally{
+    btn.disabled = false; btn.textContent = old;
+  }
+}
+
+/* ---------- events ---------- */
+document.addEventListener("DOMContentLoaded", ()=>{
+  loadConfig();
+  renderContainers();
+
+  $("#form").addEventListener("submit", submitForm);
+  $("#btnAdd").addEventListener("click", ()=>openModal(-1));
+  $("#btnPdf").addEventListener("click", importPdf);
+  $("#btnReset").addEventListener("click", ()=>{
+    if(!confirm("ล้างข้อมูลทั้งหมดในฟอร์ม?")) return;
+    $("#form").reset();
+    containers = [];
+    renderContainers();
+    $("#resultBox").innerHTML = "";
+    clearErr(document);
+  });
+
+  $("#mCancel").addEventListener("click", closeModal);
+  $("#mConfirm").addEventListener("click", ()=>commitModal(false));
+  $("#mConfirmMore").addEventListener("click", ()=>commitModal(true));
+  $("#modalBg").addEventListener("click", (e)=>{ if(e.target === $("#modalBg")) closeModal(); });
+  document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeModal(); });
+
+  $("#cntrList").addEventListener("click", (e)=>{
+    const del = e.target.getAttribute("data-del");
+    const ed  = e.target.getAttribute("data-edit");
+    if(del !== null){
+      containers.splice(+del, 1);
+      renderContainers();
+    }else if(ed !== null){
+      openModal(+ed);
+    }
+  });
+
+  // ลบ error เมื่อผู้ใช้เริ่มพิมพ์
+  $$("#form input, #form select").forEach(el=>{
+    el.addEventListener("input", ()=>setErr(el, false));
+    el.addEventListener("change", ()=>setErr(el, false));
+  });
+});
+</script>
+</body>
+</html>
