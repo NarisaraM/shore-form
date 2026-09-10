@@ -7,7 +7,7 @@
 <style>
   :root{
     --purple:#673ab7;--purple-dark:#512da8;--purple-light:#efe9f8;
-    --bg:#f0ebf8;--card:#fff;--line:#dadce0;--text:#202124;--muted:#5f6368;
+    --bg:#e8f0fe;--card:#fff;--line:#dadce0;--text:#202124;--muted:#5f6368;
     --danger:#d93025;--radius:12px;
     --shadow:0 1px 3px rgba(60,64,67,.15),0 4px 12px rgba(60,64,67,.08);
   }
@@ -77,9 +77,6 @@
   .result .file{font-weight:600;word-break:break-all}
   .result ul{margin:10px 0 0;padding-left:20px;color:#8a6d00}
   .result .dl{margin-top:16px;display:inline-block}
-  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:28px}
-  .pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:var(--purple-light);color:var(--purple-dark);margin-left:8px;vertical-align:middle}
-  .loading{color:var(--muted);font-size:13px;margin-top:10px}
   @media (max-width:520px){
     .hero{padding:20px 16px}.card{padding:18px 16px}.hero h1{font-size:22px}.btn-primary{width:100%}
   }
@@ -89,16 +86,7 @@
 <div class="wrap">
 
   <div class="hero">
-    <h1>ระบบแบบฟอร์มสำรวจข้อมูล SHORE <span class="pill">STATIC / GitHub Pages</span></h1>
-    <p>กรอกข้อมูลทีละขั้นตอน ระบบจะนำไปกรอกลงไฟล์ Excel ของท่าที่เลือกให้ในเบราว์เซอร์ (LINE = HAL) แล้วให้ดาวน์โหลด</p>
-    <div class="toolbar">
-      <label class="btn-ghost" style="cursor:pointer">
-        📄 นำเข้าข้อมูลจาก PDF
-        <input type="file" id="pdfInput" accept="application/pdf,.pdf" multiple hidden />
-      </label>
-      <span id="pdfStatus" class="loading" hidden></span>
-    </div>
-    <div id="libStatus" class="loading">กำลังโหลดไลบรารี…</div>
+    <h1>ระบบแบบฟอร์มสำรวจข้อมูล SHORE</h1>
     <div class="req-note">* จำเป็นต้องกรอก</div>
   </div>
 
@@ -160,10 +148,6 @@
   </form>
 
   <div id="resultBox"></div>
-  <div class="foot">
-    เวอร์ชัน static — ประมวลผลในเบราว์เซอร์ทั้งหมด (ExcelJS + pdf.js) ไม่มีการส่งข้อมูลออกนอกเครื่อง<br/>
-    หมายเหตุ: ไฟล์ที่ดาวน์โหลดจะคงข้อความ/ตำแหน่งเซลล์/การผสานเซลล์ไว้ แต่สี/เส้นขอบบางส่วนอาจหาย
-  </div>
 </div>
 
 <div class="modal-bg" id="modalBg">
@@ -194,7 +178,6 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
 "use strict";
 
@@ -549,118 +532,10 @@ function showResultError(msg){
     '</div>';
 }
 
-/* ================= นำเข้าจาก PDF (pdf.js + regex, ไม่ใช้ AI) ================= */
-if(window.pdfjsLib){
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-}
-
-const RE_CONTAINER = /\b([A-Z]{4})[ \-]?(\d{7})\b/g;
-const RE_BOOKING   = /(?:BOOKING\s*NO|BKG\s*NO|BOOKING|BKG|B\/?KG)[\s.:#]*([A-Z0-9\-]{6,})/i;
-const RE_VOY       = /(?:VOYAGE|VOY|V\.)[\s.:#]*([0-9]{2,4}[A-Z]?)/i;
-const RE_VESSEL    = /(?:VESSEL|VSL|M\.?V\.?|BY\s+VESSEL|ชื่อเรือ)[\s.:#]*([A-Z][A-Z0-9\-'. ]{2,40}?)(?:\s+(?:VOY|V\.|VOYAGE)\b|$)/i;
-const RE_POD       = /(?:PORT\s*OF\s*DISCHARGE|DISCHARGE\s*PORT|DISCH\s*PORT|POD)[\s.:#]*([A-Za-z][A-Za-z0-9\-,'/() ]{2,40})/i;
-const RE_SHIPPER   = /(?:SHIPPER\s*NAME|SHIPPER|ผู้ส่งออก)[\s.:#]*([A-Za-z0-9][A-Za-z0-9\-,.'&/() ]{3,60})/i;
-const RE_SIZE      = /\b(20|40|45)\s?'?\s?(GP|DC|HQ|HC|RF|RH|UT|OT|TK|FR|PL)\b/i;
-const STATUS_KW = {
-  FULL:  ["FULL","F/L","LADEN","ตู้หนัก","บรรจุ"],
-  EMPTY: ["EMPTY"," MT ","ตู้เปล่า"]
-};
-
-function cleanStr(s){ return s.replace(/\s{2,}/g," ").replace(/^[\s.:\-]+|[\s.:\-]+$/g,"").trim(); }
-
-async function pdfToText(file){
-  const data = new Uint8Array(await file.arrayBuffer());
-  const pdf = await pdfjsLib.getDocument({data}).promise;
-  const parts = [];
-  for(let i=1; i<=pdf.numPages; i++){
-    const page = await pdf.getPage(i);
-    const tc = await page.getTextContent();
-    parts.push(tc.items.map(x=>x.str).join(" "));
-  }
-  return parts.join("\n");
-}
-
-function parseText(text){
-  const up = text.toUpperCase();
-  const first = re => { const m = text.match(re); return m ? cleanStr(m[1]) : ""; };
-
-  let docSize = "";
-  const sm = up.match(RE_SIZE);
-  if(sm){
-    let code = sm[2].toUpperCase();
-    code = ({DC:"GP",HC:"HQ",RH:"RF"})[code] || code;
-    docSize = sm[1] + " " + code;
-  }
-
-  const containers = [], seen = new Set();
-  let m;
-  RE_CONTAINER.lastIndex = 0;
-  while((m = RE_CONTAINER.exec(up))){
-    const cn = m[1] + m[2];
-    if(seen.has(cn)) continue;
-    seen.add(cn);
-    const win = up.slice(Math.max(0, m.index-60), m.index + m[0].length + 60);
-    let size = "";
-    const wsz = win.match(RE_SIZE);
-    if(wsz){
-      let code = wsz[2].toUpperCase();
-      code = ({DC:"GP",HC:"HQ",RH:"RF"})[code] || code;
-      size = wsz[1] + " " + code;
-    }
-    let status = "";
-    for(const k in STATUS_KW){ if(STATUS_KW[k].some(w=>win.includes(w))){ status = k; break; } }
-    containers.push({container:cn, size:size || docSize, status});
-  }
-
-  return {
-    vessel: first(RE_VESSEL), voy: first(RE_VOY), shipper: first(RE_SHIPPER),
-    pod: first(RE_POD), booking: first(RE_BOOKING), containers
-  };
-}
-
-function mergeSuggest(dst, src){
-  ["vessel","voy","shipper","pod","booking"].forEach(k=>{ if(!dst[k] && src[k]) dst[k] = src[k]; });
-  const have = new Set(dst.containers.map(c=>c.container));
-  src.containers.forEach(c=>{ if(!have.has(c.container)){ dst.containers.push(c); have.add(c.container); } });
-}
-
-async function importPdf(files){
-  const status = $("#pdfStatus");
-  status.hidden = false; status.textContent = "กำลังอ่าน PDF…";
-  const merged = {vessel:"",voy:"",shipper:"",pod:"",booking:"",containers:[]};
-  const done = [];
-  for(const f of files){
-    try{
-      const txt = await pdfToText(f);
-      mergeSuggest(merged, parseText(txt));
-      done.push(f.name);
-    }catch(e){ console.error(e); }
-  }
-  if($("#vessel").value.trim()==="" && merged.vessel) $("#vessel").value = merged.vessel;
-  if($("#voy").value.trim()==="" && merged.voy)       $("#voy").value = merged.voy;
-  if($("#shipper").value.trim()==="" && merged.shipper) $("#shipper").value = merged.shipper;
-  if($("#pod").value.trim()==="" && merged.pod)       $("#pod").value = merged.pod;
-  if($("#booking").value.trim()==="" && merged.booking) $("#booking").value = merged.booking;
-  merged.containers.forEach(c=>{
-    const cn = (c.container||"").toUpperCase();
-    if(!CONTAINER_RE.test(cn)) return;
-    if(containers.some(x=>x.container === cn)) return;
-    containers.push({size:c.size||"", container:cn, status:c.status||""});
-  });
-  renderContainers();
-  status.textContent = "อ่านแล้ว: " + (done.join(", ") || "-") + " — โปรดตรวจสอบ/แก้ไขก่อนกดส่ง";
-}
-
 /* ================= init ================= */
 document.addEventListener("DOMContentLoaded", ()=>{
-  const libOk = !!window.ExcelJS;
-  $("#libStatus").textContent = libOk
-    ? "พร้อมใช้งาน (ExcelJS โหลดสำเร็จ)"
-    : "โหลด ExcelJS ไม่สำเร็จ — ตรวจสอบอินเทอร์เน็ต แล้วรีเฟรช";
-  $("#libStatus").style.color = libOk ? "#137333" : "var(--danger)";
-  if(!window.pdfjsLib){
-    $("#pdfInput").parentElement.style.display = "none";
+  if(!window.ExcelJS){
+    showResultError("โหลดไลบรารี ExcelJS ไม่สำเร็จ — ตรวจสอบอินเทอร์เน็ตแล้วรีเฟรชหน้านี้");
   }
 
   loadConfig();
@@ -668,15 +543,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   $("#form").addEventListener("submit", submitForm);
   $("#btnAdd").addEventListener("click", ()=>openModal(-1));
-  $("#pdfInput").addEventListener("change", e=>{
-    if(e.target.files && e.target.files.length) importPdf(Array.from(e.target.files));
-    e.target.value = "";
-  });
   $("#btnReset").addEventListener("click", ()=>{
     if(!confirm("ล้างข้อมูลทั้งหมดในฟอร์ม?")) return;
     $("#form").reset(); containers = []; renderContainers();
     $("#resultBox").innerHTML = ""; clearErr(document);
-    $("#pdfStatus").hidden = true;
   });
 
   $("#mCancel").addEventListener("click", closeModal);

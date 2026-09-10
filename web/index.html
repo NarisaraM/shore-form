@@ -9,7 +9,7 @@
     --purple:#673ab7;
     --purple-dark:#512da8;
     --purple-light:#efe9f8;
-    --bg:#f0ebf8;
+    --bg:#e8f0fe;
     --card:#ffffff;
     --line:#dadce0;
     --text:#202124;
@@ -151,7 +151,6 @@
   .result ul{margin:10px 0 0;padding-left:20px;color:#8a6d00}
   .result .dl{margin-top:16px;display:inline-block}
 
-  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:28px}
 
   @media (max-width:520px){
     .hero{padding:20px 16px}
@@ -166,10 +165,6 @@
 
   <div class="hero">
     <h1>ระบบแบบฟอร์มสำรวจข้อมูล SHORE</h1>
-    <p>กรอกข้อมูลทีละขั้นตอน ระบบจะนำข้อมูลไปกรอกลงไฟล์ Excel ของท่าที่เลือกให้อัตโนมัติ (LINE = HAL)</p>
-    <div class="toolbar">
-      <button type="button" class="btn-ghost" id="btnPdf">📄 นำเข้าข้อมูลจาก PDF (โฟลเดอร์ pdf_in/)</button>
-    </div>
     <div class="req-note">* จำเป็นต้องกรอก</div>
   </div>
 
@@ -239,7 +234,6 @@
 
   <div id="resultBox"></div>
 
-  <div class="foot">ระบบทำงานภายในเครื่อง (localhost) • ข้อมูลถูกเขียนลงโฟลเดอร์ output/</div>
 </div>
 
 <!-- ====== โมดัลเพิ่มตู้ ====== -->
@@ -504,44 +498,6 @@ function showResultError(msg){
     '</div>';
 }
 
-/* ---------- นำเข้าจาก PDF ---------- */
-async function importPdf(){
-  const btn = $("#btnPdf");
-  const old = btn.textContent;
-  btn.disabled = true; btn.textContent = "กำลังอ่าน PDF...";
-  try{
-    const r = await fetch("/api/parse-pdf", {method:"POST"});
-    const data = await r.json();
-    if(!data.ok){
-      alert(data.error || "อ่าน PDF ไม่สำเร็จ");
-      return;
-    }
-    const s = data.suggestions || {};
-    if(s.vessel)  $("#vessel").value  = s.vessel;
-    if(s.voy)     $("#voy").value     = s.voy;
-    if(s.shipper) $("#shipper").value = s.shipper;
-    if(s.pod)     $("#pod").value     = s.pod;
-    if(s.booking) $("#booking").value = s.booking;
-    (s.containers || []).forEach(c=>{
-      const cn = (c.container||"").toUpperCase();
-      if(!CONTAINER_RE.test(cn)) return;
-      if(containers.some(x=>x.container === cn)) return;
-      containers.push({
-        size: c.size || "",
-        container: cn,
-        status: c.status || ""
-      });
-    });
-    renderContainers();
-    alert("อ่านไฟล์: " + (data.files||[]).join(", ") +
-          "\nโปรดตรวจสอบ/แก้ไขข้อมูลก่อนกดส่ง");
-  }catch(e){
-    alert("เรียก /api/parse-pdf ไม่ได้");
-  }finally{
-    btn.disabled = false; btn.textContent = old;
-  }
-}
-
 /* ---------- events ---------- */
 document.addEventListener("DOMContentLoaded", ()=>{
   loadConfig();
@@ -549,7 +505,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   $("#form").addEventListener("submit", submitForm);
   $("#btnAdd").addEventListener("click", ()=>openModal(-1));
-  $("#btnPdf").addEventListener("click", importPdf);
   $("#btnReset").addEventListener("click", ()=>{
     if(!confirm("ล้างข้อมูลทั้งหมดในฟอร์ม?")) return;
     $("#form").reset();
