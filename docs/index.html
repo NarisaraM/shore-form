@@ -519,6 +519,38 @@ function triggerDownload(buf, name){
   setTimeout(()=>URL.revokeObjectURL(url), 4000);
 }
 
+/* หน้านี้เป็น static site (GitHub Pages) ไม่มีเซิร์ฟเวอร์ จึงแนบไฟล์แล้วกดส่งอีเมลให้อัตโนมัติ
+   100% ไม่ได้ (ต้องมี backend หรือบริการส่งอีเมลแบบเสียเงิน) — ทำได้ดีที่สุดคือเปิดฉบับร่างอีเมล
+   ให้พร้อมผู้รับ/หัวเรื่อง/เนื้อหา แล้วให้ผู้ใช้แนบไฟล์ที่ดาวน์โหลดไว้เอง ก่อนกดส่งในโปรแกรมเมลของตน */
+const EMAIL_RECIPIENTS = ["dongykong.naris@gmail.com", "sirichai@heungaline.co.th"];
+
+function buildMailBody(payload, rows, outFile, warnings){
+  const lines = [
+    "มีการส่งข้อมูล SHORE ใหม่ผ่านระบบแบบฟอร์มสำรวจข้อมูล (Self Service Shore)",
+    "",
+    "*** อย่าลืมแนบไฟล์ "+outFile+" ที่ดาวน์โหลดไว้ก่อนกดส่ง ***",
+    "",
+    "TERMINAL      : "+payload.terminal,
+    "Vessel / Voy. : "+payload.vessel+" V."+payload.voy,
+    "Shipper name  : "+payload.shipper,
+    "POD           : "+payload.pod,
+    "Booking No.   : "+payload.booking,
+    "",
+    "จำนวนตู้ ("+payload.rows.length+" ใบ):"
+  ];
+  payload.rows.forEach((r,i)=>lines.push("  "+(i+1)+". "+r.container+"  size="+r.size+"  status="+r.status));
+  if(warnings && warnings.length) lines.push("", "หมายเหตุ:", ...warnings.map(w=>"  - "+w));
+  return lines.join("\n");
+}
+
+function openMailDraft(payload, rows, outFile, warnings){
+  const subject = "[SHORE] "+TERMINALS[payload.terminal].key+" - "+payload.vessel+" V."+payload.voy+" - Booking "+payload.booking;
+  const body = buildMailBody(payload, rows, outFile, warnings);
+  const url = "mailto:"+EMAIL_RECIPIENTS.join(",")+
+    "?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body);
+  window.location.href = url;
+}
+
 async function submitForm(ev){
   ev.preventDefault();
   $("#resultBox").innerHTML = "";
@@ -545,6 +577,7 @@ async function submitForm(ev){
     triggerDownload(buf, conf.out);
     showResult(conf.out, written, warnings);
     window.scrollTo({top:document.body.scrollHeight, behavior:"smooth"});
+    setTimeout(()=>openMailDraft(payload, rows, conf.out, warnings), 600);
   }catch(e){
     console.error(e);
     let msg = e.message || String(e);
@@ -559,11 +592,16 @@ async function submitForm(ev){
 function showResult(outFile, rows, warnings){
   const warn = (warnings && warnings.length)
     ? '<ul>'+warnings.map(w=>'<li>'+escapeHtml(w)+'</li>').join("")+'</ul>' : "";
+  const toList = EMAIL_RECIPIENTS.map(escapeHtml).join(", ");
   $("#resultBox").innerHTML =
     '<div class="result">'+
-      '<h2>✓ สร้างไฟล์สำเร็จ</h2>'+
-      '<div>ไฟล์ผลลัพธ์: <span class="file">'+escapeHtml(outFile)+'</span> (ดาวน์โหลดอัตโนมัติแล้ว)</div>'+
-      '<div>จำนวนตู้ที่เขียน: '+rows+' ใบ</div>'+ warn +
+      '<h2>✓ สร้างไฟล์สำเร็จ — กำลังเปิดโปรแกรมอีเมลให้</h2>'+
+      '<div>ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกดาวน์โหลดไว้แล้ว</div>'+
+      '<div>จำนวนตู้: '+rows+' ใบ</div>'+ warn +
+      '<ul><li>โปรแกรมอีเมลของคุณจะเปิดขึ้น พร้อมผู้รับ/หัวเรื่อง/เนื้อหาให้แล้ว (ถึง '+toList+')</li>'+
+      '<li><b>กรุณาแนบไฟล์ '+escapeHtml(outFile)+' ที่เพิ่งดาวน์โหลด</b> แล้วกด Send ในโปรแกรมอีเมลของคุณ</li>'+
+      '<li>เว็บเวอร์ชันนี้ (GitHub Pages) ไม่มีเซิร์ฟเวอร์ จึงแนบไฟล์และส่งให้อัตโนมัติ 100% ไม่ได้ — '+
+      'ถ้าต้องการให้ส่งอัตโนมัติจริงไม่ต้องแนบเอง ใช้เวอร์ชัน Python (<code>python run.py</code>)</li></ul>'+
     '</div>';
 }
 function showResultError(msg){

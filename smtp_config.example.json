@@ -1,0 +1,11 @@
+{
+  "_readme": "คัดลอกไฟล์นี้เป็นชื่อ smtp_config.json (ไม่ต้องมี _readme) แล้วกรอกข้อมูลจริง - ไฟล์ smtp_config.json จะไม่ถูก commit ขึ้น git (อยู่ใน .gitignore แล้ว)",
+
+  "host": "smtp.gmail.com",
+  "port": 587,
+  "use_tls": true,
+  "username": "youraccount@gmail.com",
+  "password": "รหัสผ่านแอป (App Password) 16 หลัก - ไม่ใช่รหัสผ่านล็อกอินปกติ",
+  "from_addr": "youraccount@gmail.com",
+  "from_name": "SHORE Self Service"
+}

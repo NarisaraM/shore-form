@@ -21,3 +21,6 @@ pdf_in/*
 # ---- OS ----
 .DS_Store
 Thumbs.db
+
+# ---- ค่าตั้งค่าอีเมล (มีรหัสผ่าน ห้าม commit) ----
+smtp_config.json

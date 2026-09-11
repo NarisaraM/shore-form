@@ -7,9 +7,10 @@ server.py
 เส้นทาง (routes):
   GET  /                -> web/index.html
   GET  /api/config      -> ตัวเลือก TERMINAL / SIZE / STATUS จาก Check.xlsx
+  GET  /api/mail-status -> ตรวจว่าตั้งค่า SMTP ไว้แล้วหรือยัง
   POST /api/parse-pdf   -> อ่านไฟล์ PDF ในโฟลเดอร์ pdf_in/ แล้วเดาค่ากรอกฟอร์ม
-  POST /api/submit      -> เขียนข้อมูลลงแม่แบบ Excel ของ TERMINAL ที่เลือก
-  GET  /download/<file> -> ดาวน์โหลดไฟล์ผลลัพธ์จากโฟลเดอร์ output/
+  POST /api/submit      -> เขียนข้อมูลลงแม่แบบ Excel ของ TERMINAL ที่เลือก แล้วส่งอีเมลแนบไฟล์
+  GET  /download/<file> -> (สำรอง/สำหรับผู้ดูแลระบบ) ดาวน์โหลดไฟล์ผลลัพธ์จากโฟลเดอร์ output/
 """
 
 from __future__ import annotations
@@ -30,10 +31,51 @@ sys.path.insert(0, BASE_DIR)
 from lib.config_reader import read_config          # noqa: E402
 from lib.pdf_extract import parse_folder           # noqa: E402
 from lib.excel_fill import fill, TERMINALS         # noqa: E402
+from lib import mailer                             # noqa: E402
+
+# ผู้รับอีเมลทุกครั้งที่มีการส่งข้อมูล (แก้ได้ตรงนี้)
+EMAIL_RECIPIENTS = [
+    "dongykong.naris@gmail.com",
+    "sirichai@heungaline.co.th",
+]
 
 
 def _json_bytes(obj) -> bytes:
     return json.dumps(obj, ensure_ascii=False).encode("utf-8")
+
+
+def _build_mail(payload: dict, result: dict):
+    """สร้างหัวเรื่อง + เนื้อหาอีเมลจากข้อมูลที่กรอกในฟอร์ม"""
+    terminal = payload.get("terminal", "")
+    vessel = payload.get("vessel", "")
+    voy = payload.get("voy", "")
+    shipper = payload.get("shipper", "")
+    pod = payload.get("pod", "")
+    booking = payload.get("booking", "")
+    rows = payload.get("rows", [])
+
+    subject = f"[SHORE] {result.get('terminal_key','')} - {vessel} V.{voy} - Booking {booking}"
+
+    lines = [
+        "มีการส่งข้อมูล SHORE ใหม่ผ่านระบบแบบฟอร์มสำรวจข้อมูล (Self Service Shore)",
+        "",
+        f"TERMINAL      : {terminal}",
+        f"Vessel / Voy. : {vessel} V.{voy}",
+        f"Shipper name  : {shipper}",
+        f"POD           : {pod}",
+        f"Booking No.   : {booking}",
+        "",
+        f"จำนวนตู้ ({len(rows)} ใบ):",
+    ]
+    for i, r in enumerate(rows, 1):
+        lines.append(
+            f"  {i}. {r.get('container','')}  size={r.get('size','')}  status={r.get('status','')}"
+        )
+    if result.get("warnings"):
+        lines += ["", "หมายเหตุ:"] + [f"  - {w}" for w in result["warnings"]]
+    lines += ["", f"ไฟล์แนบ: {result.get('out_file','')}", "", "-- ส่งอัตโนมัติจากระบบ Self Service Shore --"]
+
+    return subject, "\n".join(lines)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -83,6 +125,12 @@ class Handler(BaseHTTPRequestHandler):
                                     for name in cfg["terminals"] if name in TERMINALS}
             return self._send_json(cfg)
 
+        if path == "/api/mail-status":
+            return self._send_json({
+                "configured": mailer.is_configured(BASE_DIR),
+                "recipients": EMAIL_RECIPIENTS,
+            })
+
         if path.startswith("/download/"):
             name = urllib.parse.unquote(path[len("/download/"):])
             return self._serve_download(name)
@@ -115,10 +163,30 @@ class Handler(BaseHTTPRequestHandler):
                 import traceback
                 traceback.print_exc()
                 return self._send_json({"ok": False, "error": str(exc), "warnings": []}, 500)
-            if result.get("ok"):
-                result["download"] = "/download/" + urllib.parse.quote(result["out_file"])
-            code = 200 if result.get("ok") else 400
-            return self._send_json(result, code)
+
+            if not result.get("ok"):
+                return self._send_json(result, 400)
+
+            # เขียนไฟล์ Excel สำเร็จแล้ว -> ส่งอีเมลแนบไฟล์ (แทนการให้ดาวน์โหลด)
+            try:
+                subject, body = _build_mail(payload, result)
+                mailer.send_excel_email(
+                    BASE_DIR,
+                    to_list=EMAIL_RECIPIENTS,
+                    subject=subject,
+                    body_text=body,
+                    attachment_path=result["out_path"],
+                    attachment_name=result["out_file"],
+                )
+                result["emailed"] = True
+                result["to"] = EMAIL_RECIPIENTS
+                return self._send_json(result, 200)
+            except Exception as exc:
+                # เขียนไฟล์ไว้ที่ output/ แล้ว (เป็นสำรอง) แต่ส่งเมลไม่สำเร็จ -> แจ้งผู้ใช้ตรง ๆ
+                result["ok"] = False
+                result["emailed"] = False
+                result["error"] = str(exc)
+                return self._send_json(result, 502)
 
         return self._send_json({"error": "not found"}, 404)
 
