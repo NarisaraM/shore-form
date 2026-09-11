@@ -3,15 +3,16 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ระบบแบบฟอร์มสำรวจข้อมูล SHORE</title>
+<title>Self Service Shore</title>
 <style>
   :root{
     --purple:#673ab7;
     --purple-dark:#512da8;
     --purple-light:#efe9f8;
-    --bg:#e8f0fe;
+    --bg:#ffffff;
     --card:#ffffff;
     --line:#dadce0;
+    --edge:#f0f0f0;
     --text:#202124;
     --muted:#5f6368;
     --danger:#d93025;
@@ -32,12 +33,14 @@
   /* ---- หัวเรื่อง ---- */
   .hero{
     background:var(--card);
-    border-top:10px solid var(--purple);
+    border:1px solid var(--edge);
     border-radius:var(--radius);
     box-shadow:var(--shadow);
     margin-top:24px;
     padding:24px 24px 20px;
   }
+  .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+  .hero .logo{height:40px;width:auto;flex:none;margin-top:2px}
   .hero h1{margin:0 0 6px;font-size:26px;font-weight:600}
   .hero p{margin:0;color:var(--muted);font-size:14px}
   .hero .req-note{margin-top:14px;color:var(--danger);font-size:13px}
@@ -49,9 +52,8 @@
     box-shadow:var(--shadow);
     margin-top:16px;
     padding:22px 24px;
-    border-left:6px solid transparent;
+    border:1px solid var(--edge);
   }
-  .card.section-title{border-left-color:var(--purple)}
   .card h2{margin:0 0 4px;font-size:18px;font-weight:600}
   .card h2 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:4px}
 
@@ -135,7 +137,7 @@
   .modal{
     background:#fff;border-radius:14px;width:100%;max-width:440px;
     box-shadow:0 8px 32px rgba(0,0,0,.3);padding:24px;
-    border-top:8px solid var(--purple);
+    border:1px solid var(--edge);
   }
   .modal h3{margin:0 0 4px;font-size:19px}
   .modal p.hint{margin:0 0 8px;font-size:13px;color:var(--muted)}
@@ -155,7 +157,8 @@
   @media (max-width:520px){
     .hero{padding:20px 16px}
     .card{padding:18px 16px}
-    .hero h1{font-size:22px}
+    .hero h1{font-size:19px}
+    .hero .logo{height:28px}
     .btn-primary{width:100%}
   }
 </style>
@@ -164,7 +167,10 @@
 <div class="wrap">
 
   <div class="hero">
-    <h1>ระบบแบบฟอร์มสำรวจข้อมูล SHORE</h1>
+    <div class="hero-top">
+      <h1>Self Service Shore</h1>
+      <img class="logo" src="/logo.png" alt="Heung-A Line" />
+    </div>
     <div class="req-note">* จำเป็นต้องกรอก</div>
   </div>
 
@@ -196,7 +202,7 @@
 
       <div class="field">
         <label class="q" for="shipper">Shipper name (ชื่อผู้ส่งออก) <span class="star">*</span></label>
-        <input type="text" id="shipper" name="shipper" placeholder="เช่น HI HAPPY TRADING CO., LTD." required />
+        <input type="text" id="shipper" name="shipper" placeholder="เช่น ABC CO., LTD." required />
         <div class="msg-err" data-for="shipper">กรุณากรอกชื่อ Shipper</div>
       </div>
 
@@ -250,7 +256,7 @@
 
     <div class="field">
       <label class="q" for="mCntr">Container Number <span class="star">*</span></label>
-      <input type="text" id="mCntr" placeholder="เช่น SKRU9905312" maxlength="20" />
+      <input type="text" id="mCntr" placeholder="เช่น HALU1234567" maxlength="20" />
       <div class="msg-err" data-for="mCntr">กรุณากรอกเลขตู้ (รูปแบบ ABCD1234567)</div>
     </div>
 

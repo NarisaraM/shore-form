@@ -87,6 +87,9 @@ class Handler(BaseHTTPRequestHandler):
             name = urllib.parse.unquote(path[len("/download/"):])
             return self._serve_download(name)
 
+        if path == "/logo.png":
+            return self._serve_file(os.path.join(BASE_DIR, "logo.png"), "image/png")
+
         if path.startswith("/web/"):
             return self._serve_file(os.path.join(BASE_DIR, path.lstrip("/")),
                                     self._guess_ctype(path))
