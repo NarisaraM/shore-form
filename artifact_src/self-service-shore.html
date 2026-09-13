@@ -536,6 +536,53 @@ async function saveFile(buf, name){
   return "saved";
 }
 
+/* ================= ส่งอีเมลอัตโนมัติผ่าน Gmail ที่เชื่อมกับบัญชี Claude ของผู้ใช้ =================
+   ใช้ capability "mcp" ของ Artifact เรียก connector "Gmail" โดยตรง (ไม่ผ่านเซิร์ฟเวอร์ใด ๆ)
+   ทดสอบรูปแบบคำขอ/ไฟล์แนบจริงแล้วก่อนขึ้นระบบ (ผ่าน create_draft แบบไม่ส่งจริง) */
+const GMAIL_TOOL = "send_message";
+const GMAIL_ERROR_COPY = {
+  needs_reauth:        "บัญชี Gmail ของคุณต้องเชื่อมต่อใหม่ (ไปที่ Settings → Connectors ใน claude.ai)",
+  server_not_connected:"ยังไม่ได้เชื่อมต่อ Gmail กับบัญชี Claude ของคุณ (ไปที่ Settings → Connectors)",
+  selection_required:  "มีหลายบัญชี Gmail เชื่อมต่ออยู่ กรุณาเลือกบัญชีในกล่องที่เด้งขึ้น แล้วกดส่งข้อมูลอีกครั้ง",
+  not_in_manifest:      "หน้านี้ยังไม่ได้รับอนุญาตให้ใช้ Gmail",
+  consent_required:     "คุณยังไม่อนุญาตให้หน้านี้ใช้ Gmail กดส่งข้อมูลอีกครั้งเพื่อขออนุญาต",
+  blocked_by_policy:    "องค์กรของคุณปิดการใช้ Gmail จากหน้านี้ไว้",
+  approval_required:    "อีเมลนี้ต้องขออนุมัติก่อนส่ง (นโยบายองค์กร)",
+  tool_error:           "Gmail รายงานว่าส่งไม่สำเร็จ",
+  cancelled:            "การส่งอีเมลถูกยกเลิกกลางคัน (ไม่แน่ใจว่าส่งไปแล้วหรือไม่ กรุณาตรวจ Gmail ก่อนส่งซ้ำ)",
+  not_granted:          "หน้านี้ไม่ได้รับสิทธิ์ใช้ตัวเชื่อมต่อ",
+  capability_disabled:  "ระบบเชื่อมต่อใช้ไม่ได้ในหน้านี้ขณะนี้",
+};
+function arrayBufferToB64(buf){
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  const chunk = 0x8000;
+  for(let i=0;i<bytes.length;i+=chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i+chunk));
+  return btoa(bin);
+}
+async function tryGmailSend(buf, filename, toList, subject, bodyText){
+  if(!(window.claude && window.claude.use)) return {ok:false, reason:null}; // ไม่ได้รันใน Artifact
+  let mcp;
+  try{ mcp = await window.claude.use("mcp"); }catch(e){ mcp = null; }
+  if(!mcp) return {ok:false, reason:null};
+  try{
+    const res = await mcp.callTool("Gmail", GMAIL_TOOL, {
+      to: toList,
+      subject: subject,
+      body: bodyText,
+      attachments: [{
+        content: arrayBufferToB64(buf),
+        filename: filename,
+        mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      }]
+    });
+    return {ok:true, payload: res.payload};
+  }catch(e){
+    const code = e && e.code;
+    return {ok:false, reason: GMAIL_ERROR_COPY[code] || ("Gmail ส่งไม่สำเร็จ (" + (code || "unknown") + ")")};
+  }
+}
+
 /* หน้านี้เป็น static site (GitHub Pages) ไม่มีเซิร์ฟเวอร์ จึงแนบไฟล์แล้วกดส่งอีเมลให้อัตโนมัติ
    100% ไม่ได้ (ต้องมี backend หรือบริการส่งอีเมลแบบเสียเงิน) — ทำได้ดีที่สุดคือเปิดฉบับร่างอีเมล
    ให้พร้อมผู้รับ/หัวเรื่อง/เนื้อหา แล้วให้ผู้ใช้แนบไฟล์ที่ดาวน์โหลดไว้เอง ก่อนกดส่งในโปรแกรมเมลของตน */
@@ -591,6 +638,20 @@ async function submitForm(ev){
   try{
     const rows = buildRows(payload);
     const { buf, written, warnings } = await fillTemplate(conf, rows);
+
+    const subject = "[SHORE] "+conf.key+" - "+payload.vessel+" V."+payload.voy+" - Booking "+payload.booking;
+    const bodyText = buildMailBody(payload, rows, conf.out, warnings);
+
+    btn.textContent = "กำลังส่งอีเมลผ่าน Gmail…";
+    const gmail = await tryGmailSend(buf, conf.out, EMAIL_RECIPIENTS, subject, bodyText);
+    if(gmail.ok){
+      showResultGmailSent(conf.out, written, warnings);
+      window.scrollTo({top:document.body.scrollHeight, behavior:"smooth"});
+      return;
+    }
+
+    // Gmail ส่งไม่สำเร็จ (หรือไม่ได้รันใน Artifact ที่มี capability นี้) -> สำรอง: บันทึกไฟล์ + เปิดร่างอีเมล
+    btn.textContent = "กำลังบันทึกไฟล์…";
     let saveStatus;
     try{
       saveStatus = await saveFile(buf, conf.out);
@@ -601,7 +662,7 @@ async function submitForm(ev){
       }
       throw e;
     }
-    showResult(conf.out, written, warnings, saveStatus);
+    showResult(conf.out, written, warnings, saveStatus, gmail.reason);
     window.scrollTo({top:document.body.scrollHeight, behavior:"smooth"});
     setTimeout(()=>openMailDraft(payload, rows, conf.out, warnings), 600);
   }catch(e){
@@ -612,22 +673,36 @@ async function submitForm(ev){
   }
 }
 
-function showResult(outFile, rows, warnings, saveStatus){
+function showResultGmailSent(outFile, rows, warnings){
+  const warn = (warnings && warnings.length)
+    ? '<ul>'+warnings.map(w=>'<li>'+escapeHtml(w)+'</li>').join("")+'</ul>' : "";
+  const toList = EMAIL_RECIPIENTS.map(escapeHtml).join(", ");
+  $("#resultBox").innerHTML =
+    '<div class="result">'+
+      '<h2>✓ ส่งอีเมลสำเร็จผ่าน Gmail ของคุณ</h2>'+
+      '<div>ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกส่งไปที่ '+toList+' เรียบร้อยแล้ว</div>'+
+      '<div>จำนวนตู้: '+rows+' ใบ</div>'+ warn +
+    '</div>';
+}
+function showResult(outFile, rows, warnings, saveStatus, gmailReason){
   const warn = (warnings && warnings.length)
     ? '<ul>'+warnings.map(w=>'<li>'+escapeHtml(w)+'</li>').join("")+'</ul>' : "";
   const toList = EMAIL_RECIPIENTS.map(escapeHtml).join(", ");
   const savedLine = saveStatus === "delivered"
     ? 'ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกส่งไปยังปลายทางที่คุณเลือกแล้ว'
     : 'ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกบันทึกไว้แล้ว';
+  const gmailLine = gmailReason
+    ? '<li>ส่งผ่าน Gmail อัตโนมัติไม่สำเร็จ: '+escapeHtml(gmailReason)+'</li>'
+    : '';
   $("#resultBox").innerHTML =
     '<div class="result">'+
       '<h2>✓ สร้างไฟล์สำเร็จ — กำลังเปิดโปรแกรมอีเมลให้</h2>'+
       '<div>'+savedLine+'</div>'+
       '<div>จำนวนตู้: '+rows+' ใบ</div>'+ warn +
-      '<ul><li>โปรแกรมอีเมลของคุณจะเปิดขึ้น พร้อมผู้รับ/หัวเรื่อง/เนื้อหาให้แล้ว (ถึง '+toList+')</li>'+
+      '<ul>'+gmailLine+
+      '<li>โปรแกรมอีเมลของคุณจะเปิดขึ้น พร้อมผู้รับ/หัวเรื่อง/เนื้อหาให้แล้ว (ถึง '+toList+')</li>'+
       '<li><b>กรุณาแนบไฟล์ '+escapeHtml(outFile)+' ที่เพิ่งบันทึกไว้</b> แล้วกด Send ในโปรแกรมอีเมลของคุณ</li>'+
-      '<li>หน้านี้ (Artifact) ไม่มีเซิร์ฟเวอร์ จึงแนบไฟล์และส่งให้อัตโนมัติ 100% ไม่ได้ — '+
-      'ถ้าต้องการให้ส่งอัตโนมัติจริงไม่ต้องแนบเอง ใช้เวอร์ชัน Python (<code>python run.py</code>)</li></ul>'+
+      '</ul>'+
     '</div>';
 }
 function showResultError(msg){
