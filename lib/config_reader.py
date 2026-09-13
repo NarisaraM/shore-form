@@ -16,7 +16,7 @@ from typing import Dict, List
 import openpyxl
 
 # ชื่อไฟล์คำสั่งตัวเลือก
-CHECK_FILE = "Check.xlsx"
+CHECK_FILE = os.path.join("input", "Check.xlsx")
 
 # ค่าที่ใช้สำรอง เผื่อเปิดไฟล์ Check.xlsx ไม่ได้ (คัดลอกจากไฟล์จริง ณ วันที่สร้างสคริปต์)
 FALLBACK = {

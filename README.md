@@ -179,8 +179,11 @@ lib/excel_fill.py      ตารางจับคู่ + เขียนข้
 lib/mailer.py           ส่งอีเมลแนบไฟล์ Excel ผ่าน SMTP
 smtp_config.example.json  แม่แบบไฟล์ตั้งค่าอีเมล (ไม่มีรหัสผ่านจริง)
 smtp_config.json       ไฟล์ตั้งค่าอีเมลจริง (คุณสร้างเอง - ไม่ถูก commit)
-Check.xlsx             ไฟล์คำสั่งตัวเลือก
-A0/B3/B5C3/A3C1C2 .xls, A2 .xlsx   ไฟล์แม่แบบ (scrub_templates.py ล้างข้อมูลตัวอย่างไปแล้ว)
+input/                 ไฟล์ต้นฉบับทั้งหมด (แก้/แทนที่ไฟล์ในนี้แล้วรัน build_docs.py + build_artifact.py ใหม่)
+input/Check.xlsx         ไฟล์คำสั่งตัวเลือก
+input/A0-SHORE.xls, B3-SHORE.xls, B5C3-SHORE.xls, A3C1C2-HUTCHISON.xls, "A2-FORM  A.xlsx"
+                        ไฟล์แม่แบบต้นฉบับ (scrub_templates.py ล้างข้อมูลตัวอย่าง/ลูกค้าจริงไปแล้ว —
+                        ถ้าแทนที่ไฟล์เหล่านี้ด้วยไฟล์ใหม่ ให้รัน scrub_templates.py ซ้ำก่อนเผยแพร่เสมอ)
 pdf_in/                วางไฟล์ PDF ที่จะนำเข้า
 build/templates/       แม่แบบ .xlsx ที่แปลงแล้ว (สร้างอัตโนมัติ)
 output/                ไฟล์ผลลัพธ์ (เวอร์ชัน Python เก็บสำรองไว้ที่นี่)

@@ -213,7 +213,7 @@ const TERMINALS = {
   },
   "ESCO (EASTERN SEA LCH CNTR TML/B3)": {
     key:"B3", tpl:"templates/B3-SHORE.xlsx", out:"B3-SHORE.xlsx", sheet:"CHORE CY",
-    header:{vessel:"C11", voy:"H11"},
+    header:{vessel_voy:"C11", shipper:"C12"},
     table:{start:17, max:20, cols:{no:"A",container:"B",type:"C",size:"D",pod:"E",booking:"J"}}
   },
   "B5/C3 LCIT (LAEM CHABANG INTERNATIONAL TERMINAL CO., LTD)": {
@@ -528,8 +528,16 @@ async function fillTemplate(conf, rows){
 
   const set = (addr, val) => { xml = patchCellXml(xml, addr, val); };
 
-  if(conf.header.vessel) set(conf.header.vessel, rows[0].vessel);
-  if(conf.header.voy)    set(conf.header.voy,    rows[0].voy);
+  // ส่วนหัว (Vessel/Voy/Shipper/POD/Booking) - เขียนตรง ๆ ตามฟิลด์ที่ระบุใน header
+  // ยกเว้น "vessel_voy" ที่รวม Vessel+Voy เป็นช่องเดียว (บางแม่แบบผสานเซลล์ Vessel/Voy ไว้ด้วยกัน)
+  const h = conf.header || {};
+  const r0 = rows[0];
+  if(h.vessel)     set(h.vessel, r0.vessel);
+  if(h.voy)        set(h.voy, r0.voy);
+  if(h.shipper)    set(h.shipper, r0.shipper);
+  if(h.pod)        set(h.pod, r0.pod);
+  if(h.booking)    set(h.booking, r0.booking);
+  if(h.vessel_voy) set(h.vessel_voy, ("M.V. "+r0.vessel+" V."+r0.voy).trim());
 
   const t = conf.table, cols = t.cols, rc = t.rowConst || {};
 

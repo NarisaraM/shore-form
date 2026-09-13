@@ -25,6 +25,7 @@ import shutil
 from lib.xls_convert import ensure_xlsx
 
 BASE = os.path.dirname(os.path.abspath(__file__))
+INPUT = os.path.join(BASE, "input")
 DOCS = os.path.join(BASE, "docs")
 DOCS_TPL = os.path.join(DOCS, "templates")
 CACHE = os.path.join(BASE, "build", "templates")
@@ -43,9 +44,9 @@ def main():
     os.makedirs(DOCS_TPL, exist_ok=True)
 
     for src_name, out_name in TEMPLATES.items():
-        src = os.path.join(BASE, src_name)
+        src = os.path.join(INPUT, src_name)
         if not os.path.isfile(src):
-            print(f"  [!] ไม่พบ {src_name} - ข้าม")
+            print(f"  [!] ไม่พบ input/{src_name} - ข้าม")
             continue
 
         xlsx = ensure_xlsx(src, CACHE, force=True)  # แปลงสดทุกครั้งเพื่อความชัวร์
@@ -54,7 +55,7 @@ def main():
         print(f"  {out_name}: คัดลอกแล้ว ({os.path.getsize(dst)/1024:.0f} KB, เก็บฟอร์แมตต้นฉบับครบ)")
 
     # Check.xlsx
-    shutil.copyfile(os.path.join(BASE, "Check.xlsx"), os.path.join(DOCS, "Check.xlsx"))
+    shutil.copyfile(os.path.join(INPUT, "Check.xlsx"), os.path.join(DOCS, "Check.xlsx"))
     print("  คัดลอก Check.xlsx")
 
     # .nojekyll (กัน GitHub Pages ประมวลผลแบบ Jekyll)

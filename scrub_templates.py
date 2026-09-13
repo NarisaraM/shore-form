@@ -2,7 +2,7 @@
 """
 scrub_templates.py
 ลบ "ข้อมูลตัวอย่าง / ข้อมูลส่วนบุคคล" (เบอร์โทรเจ้าหน้าที่, ตารางตัวอย่าง, โน้ตเก่า)
-ออกจากไฟล์แม่แบบต้นฉบับที่รากโปรเจกต์ *ในที่เดิม* โดยคงรูปแบบไฟล์ (.xls / .xlsx) และเลย์เอาต์ไว้
+ออกจากไฟล์แม่แบบต้นฉบับในโฟลเดอร์ input/ *ในที่เดิม* โดยคงรูปแบบไฟล์ (.xls / .xlsx) และเลย์เอาต์ไว้
 
 ล้างเฉพาะ "ค่าในเซลล์" ตามช่วงที่ระบุ ไม่ลบแถว ไม่แตะหัวตาราง/โครงฟอร์ม
 ทำให้เวอร์ชัน Python (run.py) ยังทำงานเหมือนเดิมทุกประการ
@@ -18,7 +18,7 @@ import sys
 
 import win32com.client as win32
 
-BASE = os.path.dirname(os.path.abspath(__file__))
+BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "input")
 
 # xlExcel8 = .xls (97-2003), xlOpenXMLWorkbook = .xlsx
 FMT = {".xls": 56, ".xlsx": 51}
@@ -30,7 +30,7 @@ PLAN = {
         "Sheet1": ["C29:C33", "D30:K43", "G27"],
     },
     "B3-SHORE.xls": {
-        "CHORE CY": ["A37"],                # OOY 02-0596275
+        "CHORE CY": ["A37", "C11", "C12"],  # OOY 02-0596275 + ตัวอย่าง Vessel/Voy./Shipper จริง
     },
     "B5C3-SHORE.xls": {
         "Sheet1": ["A2:I9"],                     # ตารางตัวอย่าง

@@ -38,7 +38,7 @@ TERMINALS: Dict[str, Dict] = {
     # ---------- A0 : LCMT / LCB1 ----------
     "LCMT Company LTD, ( under LCB1 Group)  A0": {
         "key": "A0",
-        "src": "A0-SHORE.xls",
+        "src": "input/A0-SHORE.xls",
         "out": "A0-SHORE.xlsx",
         "sheet": "Sheet1",
         "header": {"vessel": "E6", "voy": "I6"},
@@ -54,10 +54,11 @@ TERMINALS: Dict[str, Dict] = {
     # ---------- B3 : ESCO ----------
     "ESCO (EASTERN SEA LCH CNTR TML/B3)": {
         "key": "B3",
-        "src": "B3-SHORE.xls",
+        "src": "input/B3-SHORE.xls",
         "out": "B3-SHORE.xlsx",
         "sheet": "CHORE CY",
-        "header": {"vessel": "C11", "voy": "H11"},
+        # C11 เป็นเซลล์ที่ผสาน Vessel+Voy ไว้ด้วยกัน (แม่แบบรุ่นล่าสุด) จึงรวมเป็นช่องเดียว
+        "header": {"vessel_voy": "C11", "shipper": "C12"},
         "table": {
             "start_row": 17,
             "max_rows": 20,
@@ -70,7 +71,7 @@ TERMINALS: Dict[str, Dict] = {
     # ---------- B5/C3 : LCIT ----------
     "B5/C3 LCIT (LAEM CHABANG INTERNATIONAL TERMINAL CO., LTD)": {
         "key": "B5C3",
-        "src": "B5C3-SHORE.xls",
+        "src": "input/B5C3-SHORE.xls",
         "out": "B5C3-SHORE.xlsx",
         "sheet": "Sheet1",
         "header": {},
@@ -89,7 +90,7 @@ TERMINALS: Dict[str, Dict] = {
     # ---------- A2 : Thai Laemchabang Terminal (TLT) ----------
     "A2 ( Thai Laemchabang Terminal, TLT / 허치슨 )": {
         "key": "A2",
-        "src": "A2-FORM  A.xlsx",
+        "src": "input/A2-FORM  A.xlsx",
         "out": "A2-FORM A.xlsx",
         "sheet": "FORM A",
         "header": {"vessel": "B8", "voy": "I8"},
@@ -105,7 +106,7 @@ TERMINALS: Dict[str, Dict] = {
     # ---------- A3 (C1,C2) : Hutchison (HLT) ----------
     "A3 (C1,C2) (Hutchison Laemchabang Terminal Limited, HLT)": {
         "key": "A3C1C2",
-        "src": "A3C1C2-HUTCHISON.xls",
+        "src": "input/A3C1C2-HUTCHISON.xls",
         "out": "A3C1C2-HUTCHISON.xlsx",
         "sheet": "HPT",
         "header": {},
@@ -229,12 +230,22 @@ def fill(payload: Dict, base_dir: str, cache_dir: str, out_dir: str) -> Dict:
     if sheet_name not in wb.sheetnames:
         warnings.append(f"ไม่พบชีต {sheet_name!r} ใช้ชีต {ws.title!r} แทน")
 
-    # ---- ส่วนหัว: Vessel / Voy. ----
+    # ---- ส่วนหัว: Vessel / Voy. / Shipper / POD / Booking ----
+    # (vessel_voy = ช่องที่ผสาน Vessel+Voy ไว้ด้วยกัน เขียนเป็น "M.V. {vessel} V.{voy}")
     header = conf.get("header", {})
+    r0 = rows[0]
     if header.get("vessel"):
-        _set(ws, header["vessel"], rows[0]["vessel"])
+        _set(ws, header["vessel"], r0["vessel"])
     if header.get("voy"):
-        _set(ws, header["voy"], rows[0]["voy"])
+        _set(ws, header["voy"], r0["voy"])
+    if header.get("shipper"):
+        _set(ws, header["shipper"], r0["shipper"])
+    if header.get("pod"):
+        _set(ws, header["pod"], r0["pod"])
+    if header.get("booking"):
+        _set(ws, header["booking"], r0["booking"])
+    if header.get("vessel_voy"):
+        _set(ws, header["vessel_voy"], f"M.V. {r0['vessel']} V.{r0['voy']}".strip())
 
     tbl = conf["table"]
     start = tbl["start_row"]
