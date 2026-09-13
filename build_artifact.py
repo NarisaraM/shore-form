@@ -123,14 +123,18 @@ def main():
     assert old_load in body_inner, "หา loadConfig เดิมไม่เจอ"
     body_inner = body_inner.replace(old_load, new_load)
 
-    # ---- 5) แก้ fillTemplate ให้อ่านจาก TEMPLATES_B64 แทน fetch ----
-    old_fill = '''  const res = await fetch(conf.tpl, {cache:"no-store"});
+    # ---- 5) แก้ loadTemplateBytes ให้อ่านจาก TEMPLATES_B64 (ฝังในไฟล์) แทน fetch ----
+    old_fill = '''async function loadTemplateBytes(conf){
+  const res = await fetch(conf.tpl, {cache:"no-store"});
   if(!res.ok) throw new Error("โหลดไฟล์แม่แบบไม่ได้: " + conf.tpl + " (HTTP " + res.status + ")");
-  const wb = XLSX.read(await res.arrayBuffer(), {type:"array", cellStyles:true});'''
-    new_fill = '''  const b64 = TEMPLATES_B64[conf.key];
+  return res.arrayBuffer();
+}'''
+    new_fill = '''async function loadTemplateBytes(conf){
+  const b64 = TEMPLATES_B64[conf.key];
   if(!b64) throw new Error("ไม่พบไฟล์แม่แบบที่ฝังไว้: " + conf.key);
-  const wb = XLSX.read(b64ToArrayBuffer(b64), {type:"array", cellStyles:true});'''
-    assert old_fill in body_inner, "หา fillTemplate เดิมไม่เจอ"
+  return b64ToArrayBuffer(b64);
+}'''
+    assert old_fill in body_inner, "หา loadTemplateBytes เดิมไม่เจอ"
     body_inner = body_inner.replace(old_fill, new_fill)
 
     # ---- 6) เปลี่ยนการ "ดาวน์โหลด" ให้ใช้ capability "downloads" ของ Artifact ----

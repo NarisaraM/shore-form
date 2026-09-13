@@ -183,6 +183,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 "use strict";
 
@@ -261,41 +262,113 @@ function statusCode(raw){
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 }
-/* SheetJS: หาเซลล์ "แม่" ถ้า addr อยู่ในช่วงเซลล์ที่ถูกผสาน */
-function mergeMaster(ws, addr){
-  const rc = XLSX.utils.decode_cell(addr);
-  for(const m of (ws["!merges"] || [])){
-    if(rc.r >= m.s.r && rc.r <= m.e.r && rc.c >= m.s.c && rc.c <= m.e.c){
-      return XLSX.utils.encode_cell(m.s);
-    }
+/* =========================================================================
+   เขียนค่าลงไฟล์ Excel แบบ "ผ่าตัด XML" ด้วย JSZip แทนการอ่าน-สร้างสมุดงานใหม่
+   ทั้งเล่มด้วย SheetJS/ExcelJS — แก้เฉพาะ <v>/<is> ของเซลล์ที่ต้องเขียนจริง ๆ
+   ส่วนอื่นทั้งหมด (styles.xml, theme, รูปภาพ, ความกว้างคอลัมน์ ฯลฯ) คัดลอกผ่าน
+   แบบไบต์ต่อไบต์ จึงคงหน้าตา/สี/การจัดวางของไฟล์ต้นฉบับไว้ครบ 100%
+   (ทดสอบเทียบกับต้นฉบับผ่าน Excel จริงแล้ว: ฟอนต์/สี/เส้นขอบ/ความกว้างคอลัมน์ตรงทุกจุด)
+   ========================================================================= */
+function xmlEscape(s){
+  return String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+}
+function colLetters(addr){ return addr.match(/^[A-Z]+/)[0]; }
+function colToNum(letters){
+  let n = 0;
+  for(const ch of letters) n = n*26 + (ch.charCodeAt(0) - 64);
+  return n;
+}
+async function resolveSheetPathXml(zip, sheetName){
+  const wbXml = await zip.file("xl/workbook.xml").async("string");
+  const relsXml = await zip.file("xl/_rels/workbook.xml.rels").async("string");
+  const esc = sheetName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const m = wbXml.match(new RegExp('<sheet\\b[^>]*?\\bname="'+esc+'"[^>]*?(?:/>|>)'));
+  if(!m) return null;
+  const ridM = m[0].match(/r:id="([^"]+)"/);
+  if(!ridM) return null;
+  const relM = relsXml.match(new RegExp('Id="'+ridM[1]+'"[^>]*Target="([^"]+)"'));
+  if(!relM) return null;
+  const target = relM[1];
+  return target.startsWith("/") ? target.slice(1) : "xl/" + target;
+}
+async function firstSheetPathXml(zip){
+  const wbXml = await zip.file("xl/workbook.xml").async("string");
+  const relsXml = await zip.file("xl/_rels/workbook.xml.rels").async("string");
+  const m = wbXml.match(/<sheet\b[^>]*?(?:\/>|>)/);
+  const ridM = m[0].match(/r:id="([^"]+)"/);
+  const relM = relsXml.match(new RegExp('Id="'+ridM[1]+'"[^>]*Target="([^"]+)"'));
+  const target = relM[1];
+  return target.startsWith("/") ? target.slice(1) : "xl/" + target;
+}
+function cellRegex(addr){
+  return new RegExp('<c r="'+addr+'"([^>]*?)(/>|>([\\s\\S]*?)</c>)');
+}
+/* กรณีแม่แบบไม่มี <c> ของเซลล์นั้นอยู่ก่อน (พบได้เมื่อแถวเดิมถูกล้างค่าจนว่างสนิทและ Excel
+   ไม่เขียนแถว/เซลล์เปล่า ๆ ออกมาตอนบันทึก เช่น หลัง scrub_templates.py) ต้องแทรกเองทั้งเซลล์
+   หรือทั้งแถวเข้าไปในตำแหน่งที่ถูกต้อง (เรียงตามลำดับคอลัมน์/แถว) */
+function insertCellIntoRow(xml, addr, cellXml){
+  const rowNum = addr.match(/\d+/)[0];
+  const rowRe = new RegExp('(<row\\b[^>]*\\br="'+rowNum+'"[^>]*>)([\\s\\S]*?)(</row>)');
+  const rm = xml.match(rowRe);
+  if(!rm) return null;
+  const targetCol = colToNum(colLetters(addr));
+  const cells = rm[2];
+  const cellIterRe = /<c r="([A-Z]+)\d+"[^>]*(?:\/>|>[\s\S]*?<\/c>)/g;
+  let insertAt = cells.length, m2;
+  while((m2 = cellIterRe.exec(cells))){
+    if(colToNum(m2[1]) > targetCol){ insertAt = m2.index; break; }
   }
-  return addr;
+  const newCells = cells.slice(0, insertAt) + cellXml + cells.slice(insertAt);
+  const newRow = rm[1] + newCells + rm[3];
+  return xml.slice(0, rm.index) + newRow + xml.slice(rm.index + rm[0].length);
 }
-/* ขยาย !ref (มิติของชีต) ให้ครอบคลุมเซลล์ที่เพิ่งเขียน มิฉะนั้น Excel/SheetJS อาจมองไม่เห็นเซลล์นั้น */
-function growRef(ws, addr){
-  const rc = XLSX.utils.decode_cell(addr);
-  const cur = ws["!ref"] ? XLSX.utils.decode_range(ws["!ref"]) : {s:rc, e:rc};
-  cur.s.r = Math.min(cur.s.r, rc.r); cur.s.c = Math.min(cur.s.c, rc.c);
-  cur.e.r = Math.max(cur.e.r, rc.r); cur.e.c = Math.max(cur.e.c, rc.c);
-  ws["!ref"] = XLSX.utils.encode_range(cur);
+function insertNewRow(xml, rowNum, cellXml){
+  const sdRe = /<sheetData\s*\/>|<sheetData>([\s\S]*?)<\/sheetData>/;
+  const sm = xml.match(sdRe);
+  if(!sm) return xml; // ไม่ควรเกิด - ทุกชีตต้องมี <sheetData>
+  const newRow = '<row r="'+rowNum+'">'+cellXml+'</row>';
+  if(sm[1] === undefined){
+    // <sheetData/> ว่างเปล่าแบบ self-closing
+    return xml.slice(0, sm.index) + '<sheetData>'+newRow+'</sheetData>' + xml.slice(sm.index + sm[0].length);
+  }
+  const inner = sm[1];
+  const rowIterRe = /<row\b[^>]*\br="(\d+)"[^>]*>[\s\S]*?<\/row>/g;
+  let insertAt = inner.length, m2;
+  while((m2 = rowIterRe.exec(inner))){
+    if(parseInt(m2[1],10) > parseInt(rowNum,10)){ insertAt = m2.index; break; }
+  }
+  const newInner = inner.slice(0, insertAt) + newRow + inner.slice(insertAt);
+  return xml.slice(0, sm.index) + '<sheetData>' + newInner + '</sheetData>' + xml.slice(sm.index + sm[0].length);
 }
-function setCell(ws, addr, val){
-  if(val === null || val === undefined || val === "") return;
-  const target = mergeMaster(ws, addr);
-  const cell = ws[target] || {};
-  cell.v = val;
-  cell.t = (typeof val === "number") ? "n" : "s";
-  delete cell.f; // ล้างสูตรเดิม (ถ้ามี) เพราะตอนนี้เป็นค่าคงที่แล้ว
-  ws[target] = cell;
-  growRef(ws, target);
+function patchCellXml(xml, addr, value){
+  const m = xml.match(cellRegex(addr));
+  if(m){
+    const attrs = (m[1] || "").replace(/\st="[^"]*"/, "");
+    let replacement;
+    if(value === null || value === undefined || value === ""){
+      replacement = '<c r="'+addr+'"'+attrs+"/>";
+    }else if(typeof value === "number"){
+      replacement = '<c r="'+addr+'"'+attrs+"><v>"+value+"</v></c>";
+    }else{
+      replacement = '<c r="'+addr+'"'+attrs+' t="inlineStr"><is><t xml:space="preserve">'+xmlEscape(value)+"</t></is></c>";
+    }
+    return xml.slice(0, m.index) + replacement + xml.slice(m.index + m[0].length);
+  }
+  // ไม่มี <c> ของเซลล์นี้อยู่ก่อน - ไม่มีอะไรต้องเคลียร์ก็จบเลย มีค่าจริงถึงต้องแทรก
+  if(value === null || value === undefined || value === "") return xml;
+  const newCell = (typeof value === "number")
+    ? '<c r="'+addr+'"><v>'+value+"</v></c>"
+    : '<c r="'+addr+'" t="inlineStr"><is><t xml:space="preserve">'+xmlEscape(value)+"</t></is></c>";
+  const rowNum = addr.match(/\d+/)[0];
+  const viaRow = insertCellIntoRow(xml, addr, newCell);
+  if(viaRow !== null) return viaRow;
+  return insertNewRow(xml, rowNum, newCell); // ทั้งแถวก็ไม่มีอยู่เลย - สร้างแถวใหม่ทั้งแถว
 }
-function cellEmpty(ws, addr){
-  const cell = ws[addr];
-  if(!cell) return true;
-  const v = cell.v;
-  if(v === null || v === undefined) return true;
-  if(typeof v === "string") return !v.trim();
-  return false;
+function cellHasValueXml(xml, addr){
+  const m = xml.match(cellRegex(addr));
+  if(!m) return false;
+  if(m[2] === "/>") return false;
+  return /<v>|<is>/.test(m[0]);
 }
 
 /* ================= โหลดตัวเลือกจาก Check.xlsx ================= */
@@ -434,44 +507,37 @@ function buildRows(p){
   });
 }
 
-/* ================= เขียนลงแม่แบบ Excel =================
-   ใช้ SheetJS (XLSX) แทน ExcelJS: ทดสอบแล้วว่า ExcelJS เขียนไฟล์จากแม่แบบชุดนี้ออกมา
-   เสียจนตัว Microsoft Excel เองเปิดไม่ได้ (แม้ไม่แก้ไขอะไรเลยก็ตาม) ส่วน SheetJS เปิดได้ปกติ */
-const MAX_COLS_KEEP = 60; // ตัดความกว้างคอลัมน์ส่วนเกินทิ้ง กัน SheetJS ขยาย <col> เป็นหมื่นรายการ
-
-async function fillTemplate(conf, rows){
+/* ================= โหลดไบต์ของไฟล์แม่แบบ (docs/: fetch จากไฟล์พี่น้อง) ================= */
+async function loadTemplateBytes(conf){
   const res = await fetch(conf.tpl, {cache:"no-store"});
   if(!res.ok) throw new Error("โหลดไฟล์แม่แบบไม่ได้: " + conf.tpl + " (HTTP " + res.status + ")");
-  const wb = XLSX.read(await res.arrayBuffer(), {type:"array", cellStyles:true});
+  return res.arrayBuffer();
+}
+
+/* ================= เขียนลงแม่แบบ Excel (ผ่าตัด XML ด้วย JSZip - ดูคอมเมนต์ด้านบน) ================= */
+async function fillTemplate(conf, rows){
+  const zip = await JSZip.loadAsync(await loadTemplateBytes(conf));
 
   const warnings = [];
-  let sheetName = conf.sheet;
-  if(!wb.Sheets[sheetName]){
-    sheetName = wb.SheetNames[0];
-    warnings.push("ไม่พบชีต '"+conf.sheet+"' ใช้ชีต '"+sheetName+"' แทน");
+  let sheetPath = await resolveSheetPathXml(zip, conf.sheet);
+  if(!sheetPath){
+    sheetPath = await firstSheetPathXml(zip);
+    warnings.push("ไม่พบชีต '"+conf.sheet+"' ใช้ชีตแรกในสมุดงานแทน");
   }
-  const ws = wb.Sheets[sheetName];
-  // ตัดความกว้างคอลัมน์ส่วนเกินทิ้งในชีตทุกชีตของสมุดงาน (XLSX.write เขียนทุกชีตออกมาด้วย
-  // ไม่ใช่แค่ชีตที่แก้ไข ชีตอื่นที่มีการตั้งความกว้างคอลัมน์แบบเต็มช่วงก็ทำให้ไฟล์บวมได้เหมือนกัน)
-  for(const name of wb.SheetNames){
-    const s = wb.Sheets[name];
-    if(s && s["!cols"] && s["!cols"].length > MAX_COLS_KEEP) s["!cols"] = s["!cols"].slice(0, MAX_COLS_KEEP);
-  }
+  let xml = await zip.file(sheetPath).async("string");
 
-  if(conf.header.vessel) setCell(ws, conf.header.vessel, rows[0].vessel);
-  if(conf.header.voy)    setCell(ws, conf.header.voy,    rows[0].voy);
+  const set = (addr, val) => { xml = patchCellXml(xml, addr, val); };
+
+  if(conf.header.vessel) set(conf.header.vessel, rows[0].vessel);
+  if(conf.header.voy)    set(conf.header.voy,    rows[0].voy);
 
   const t = conf.table, cols = t.cols, rc = t.rowConst || {};
 
   if(t.clearFirst){
     let r = t.start;
     while(r < t.start + t.max){
-      if(cellEmpty(ws, cols.container + r)) break;
-      Object.values(cols).forEach(c=>{
-        const target = mergeMaster(ws, c + r);
-        const cell = ws[target];
-        if(cell){ delete cell.v; delete cell.f; delete cell.w; cell.t = "z"; }
-      });
+      if(!cellHasValueXml(xml, cols.container + r)) break;
+      Object.values(cols).forEach(c => set(c + r, ""));
       r++;
     }
   }
@@ -489,12 +555,13 @@ async function fillTemplate(conf, rows){
       else if(field === "payment")    val = "CREDIT";
       else if(field === "status")     val = statusCode(rec.status);
       else                            val = rec[field];
-      setCell(ws, addr, val);
+      set(addr, val);
     }
     written++;
   }
 
-  const outBuf = XLSX.write(wb, {type:"array", bookType:"xlsx", cellStyles:true});
+  zip.file(sheetPath, xml);
+  const outBuf = await zip.generateAsync({type:"arraybuffer", compression:"DEFLATE", compressionOptions:{level:6}});
   return { buf: outBuf, written, warnings };
 }
 
@@ -613,8 +680,8 @@ function showResultError(msg){
 
 /* ================= init ================= */
 document.addEventListener("DOMContentLoaded", ()=>{
-  if(!window.XLSX){
-    showResultError("โหลดไลบรารี SheetJS ไม่สำเร็จ — ตรวจสอบอินเทอร์เน็ตแล้วรีเฟรชหน้านี้");
+  if(!window.XLSX || !window.JSZip){
+    showResultError("โหลดไลบรารีที่จำเป็นไม่สำเร็จ (SheetJS/JSZip) — ตรวจสอบอินเทอร์เน็ตแล้วรีเฟรชหน้านี้");
   }
 
   loadConfig();

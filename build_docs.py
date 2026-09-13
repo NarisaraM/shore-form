@@ -4,22 +4,23 @@ build_docs.py
 สร้างไฟล์สำหรับเวอร์ชัน static (GitHub Pages) ไว้ในโฟลเดอร์ docs/
 
 ทำสิ่งต่อไปนี้:
-  1) แปลงไฟล์แม่แบบ .xls -> .xlsx (ผ่าน lib/xls_convert)
+  1) แปลงไฟล์แม่แบบ .xls -> .xlsx สด ๆ ผ่าน Microsoft Excel (lib/xls_convert)
+     - ไฟล์ .xls ต้นฉบับผ่าน scrub_templates.py มาแล้ว (ลบข้อมูลตัวอย่าง/เบอร์โทรเจ้าหน้าที่)
+       จึงไม่ต้องล้างซ้ำตรงนี้อีก และไม่ต้องตัดรูปภาพ/ฟอร์แมตใด ๆ ออก
+       -> ไฟล์ที่ได้จึงคงฟอนต์/สี/เส้นขอบ/ความกว้างคอลัมน์/รูปภาพ เหมือนต้นฉบับ 100%
+       (docs/index.html เขียนค่าลงไฟล์ด้วยการ "ผ่าตัด XML" ผ่าน JSZip ไม่ใช้ SheetJS/ExcelJS
+        อ่าน-สร้างสมุดงานใหม่ทั้งเล่ม จึงไม่ทำลายฟอร์แมตเดิม)
   2) คัดลอกเข้า docs/templates/ โดยตั้งชื่อไม่มีช่องว่าง
-  3) "ลบข้อมูลตัวอย่าง/ข้อมูลส่วนบุคคล" (เบอร์โทรเจ้าหน้าที่, ตารางตัวอย่าง) ออกจากสำเนาใน docs/
-     *ไฟล์แม่แบบต้นฉบับที่ราก repo ไม่ถูกแตะต้อง*
-  4) คัดลอก Check.xlsx เข้า docs/
-  5) วางไฟล์ .nojekyll
+  3) คัดลอก Check.xlsx เข้า docs/
+  4) วางไฟล์ .nojekyll
 
-รันครั้งเดียว:  python build_docs.py
+รันครั้งเดียว (หรือทุกครั้งที่แก้ไฟล์แม่แบบ .xls/.xlsx):  python build_docs.py
 """
 
 from __future__ import annotations
 
 import os
 import shutil
-
-import openpyxl
 
 from lib.xls_convert import ensure_xlsx
 
@@ -37,55 +38,6 @@ TEMPLATES = {
     "A3C1C2-HUTCHISON.xls": "A3C1C2-HUTCHISON.xlsx",
 }
 
-# ช่วงเซลล์ที่ต้อง "ล้างค่า" ในสำเนา docs/  (sheet -> รายการ (col, row_from, row_to))
-SCRUB = {
-    "A0-SHORE.xlsx": {
-        "Sheet1": [
-            ("C", 29, 33),               # เบอร์โทรเจ้าหน้าที่ EAK/LEE/MINT/OIL/KUK
-            *[(c, 30, 43) for c in "DEFGHIJK"],  # แถวตัวอย่างเที่ยวเรือเก่า
-            ("G", 27, 27),               # โน้ตที่มีเบอร์มือถือเอเย่น
-        ],
-    },
-    "B3-SHORE.xlsx": {
-        "CHORE CY": [("A", 37, 37)],      # OOY 02-0596275
-    },
-    "B5C3-SHORE.xlsx": {
-        "Sheet1": [(c, 2, 9) for c in "ABCDEFGHI"],   # ตารางตัวอย่าง
-        "DataImport": [("A", 39, 43), ("A", 60, 70)], # เบอร์โทรเจ้าหน้าที่ + รายชื่อเรือตัวอย่าง
-    },
-    "A3C1C2-HUTCHISON.xlsx": {
-        "Sheet1": [(c, 2, 9) for c in "ABCDEFGHI"],   # ตารางตัวอย่าง
-        "HPT": [("A", 29, 29)],                       # โน้ตตัวอย่าง SHORE CHANGE VESSEL...
-    },
-    "A2-FORM-A.xlsx": {},
-}
-
-
-def clear_range(ws, col, r1, r2):
-    n = 0
-    for r in range(r1, r2 + 1):
-        cell = ws[f"{col}{r}"]
-        if cell.value not in (None, ""):
-            cell.value = None
-            n += 1
-    return n
-
-
-def strip_drawings(wb):
-    """
-    เอารูป/ภาพวาด/ชาร์ต ออกจากทุกชีต
-    (ExcelJS อ่านไฟล์ที่มี drawing บางแบบไม่ได้ - error 'anchors')
-    """
-    for ws in wb.worksheets:
-        try:
-            ws._images = []
-        except Exception:
-            pass
-        try:
-            ws._charts = []
-        except Exception:
-            pass
-
 
 def main():
     os.makedirs(DOCS_TPL, exist_ok=True)
@@ -96,25 +48,10 @@ def main():
             print(f"  [!] ไม่พบ {src_name} - ข้าม")
             continue
 
-        xlsx = ensure_xlsx(src, CACHE)
+        xlsx = ensure_xlsx(src, CACHE, force=True)  # แปลงสดทุกครั้งเพื่อความชัวร์
         dst = os.path.join(DOCS_TPL, out_name)
-
-        # โหลดผ่าน openpyxl เสมอ เพื่อ (1) ตัด drawing/รูป ให้ ExcelJS อ่านได้
-        # (2) ล้างข้อมูลตัวอย่าง/ส่วนบุคคล
-        wb = openpyxl.load_workbook(xlsx)
-        strip_drawings(wb)
-
-        rules = SCRUB.get(out_name, {})
-        total = 0
-        for sheet, ranges in rules.items():
-            if sheet not in wb.sheetnames:
-                print(f"  [!] {out_name}: ไม่พบชีต {sheet!r}")
-                continue
-            ws = wb[sheet]
-            for (col, r1, r2) in ranges:
-                total += clear_range(ws, col, r1, r2)
-        wb.save(dst)
-        print(f"  {out_name}: ตัด drawing + ล้างข้อมูลตัวอย่าง/ส่วนบุคคล {total} เซลล์")
+        shutil.copyfile(xlsx, dst)
+        print(f"  {out_name}: คัดลอกแล้ว ({os.path.getsize(dst)/1024:.0f} KB, เก็บฟอร์แมตต้นฉบับครบ)")
 
     # Check.xlsx
     shutil.copyfile(os.path.join(BASE, "Check.xlsx"), os.path.join(DOCS, "Check.xlsx"))
