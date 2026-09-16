@@ -97,9 +97,11 @@ TERMINALS: Dict[str, Dict] = {
                 "type": "H",         # Type
                 "pod": "J",          # POD1
                 "booking": "M",      # Bkg No
+                "shipper": "N",      # Shipper
                 "wt_uom": "P",       # Wt UOM
+                "org": "Q",          # ORG
             },
-            "row_constants": {"opr": "HAS", "owner": "HAS", "ss": "EX", "wt_uom": "KG"},
+            "row_constants": {"opr": "HAS", "owner": "HAS", "ss": "EX", "wt_uom": "KG", "org": "LCB"},
         },
     },
     # ---------- A2 : Thai Laemchabang Terminal (TLT) ----------
