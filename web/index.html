@@ -346,7 +346,7 @@ const CFG_FALLBACK = {
     "A2 ( Thai Laemchabang Terminal, TLT / 허치슨 )",
     "A3 (C1,C2) (Hutchison Laemchabang Terminal Limited, HLT)"
   ],
-  sizes: ["20 GP","40 GP","40 HQ","20 RF","40 RF","20 UT","40 UT","20 TK","40 TK"],
+  sizes: ["20 GP","40 GP","40 HQ","20 RH","40 RH","20 UT","40 UT","20 TK","40 TK","20 FR","40 FR"],
   statuses: ["FULL","EMPTY"],
   vessels: [
     "CA MANILA","DONGJIN CONFIDENT","HEUNG-A BANGKOK","HEUNG-A HOCHIMINH",
@@ -542,11 +542,6 @@ async function submitForm(ev){
     if(firstErr) firstErr.scrollIntoView({behavior:"smooth", block:"center"});
     return;
   }
-  const contactLine = "Contact: "+$("#contactName").value.trim()+" "+$("#contactPhone").value.trim()+
-    ($("#contactEmail").value.trim() ? " "+$("#contactEmail").value.trim() : "");
-  const specialCond = $("#remark").value.trim();
-  const remark = [specialCond, contactLine].filter(Boolean).join(" | ");
-
   const payload = {
     terminal: $("#terminal").value,
     vessel:   $("#vessel").value.trim(),
@@ -554,7 +549,10 @@ async function submitForm(ev){
     shipper:  $("#shipper").value.trim(),
     pod:      $("#pod").value.trim(),
     booking:  $("#booking").value.trim(),
-    remark:   remark,
+    remark:       $("#remark").value.trim(),
+    contactName:  $("#contactName").value.trim(),
+    contactPhone: $("#contactPhone").value.trim(),
+    contactEmail: $("#contactEmail").value.trim(),
     rows:     containers.map(c => ({size:c.size, container:c.container, status:c.status,
       commodity:c.commodity, temp:c.temp, vent:c.vent, dgUn:c.dgUn}))
   };

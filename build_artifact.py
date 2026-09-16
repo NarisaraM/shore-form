@@ -103,7 +103,10 @@ def main():
         '    const extraStr = extra.length ? "  "+extra.join("  ") : "";\n'
         '    lines.push("  "+(i+1)+". "+r.container+"  size="+r.size+"  status="+r.status+extraStr);\n'
         "  });\n"
-        '  if(payload.remark) lines.push("", "Special Condition / ผู้ติดต่อ: "+payload.remark);\n'
+        '  const contactLine = "Contact: "+(payload.contactName||"")+" "+(payload.contactPhone||"")+\n'
+        '    ((payload.contactEmail||"") ? " "+payload.contactEmail : "");\n'
+        '  lines.push("", "ผู้ติดต่อ: "+contactLine);\n'
+        '  if(payload.remark) lines.push("Special Condition Request: "+payload.remark);\n'
         '  if(warnings && warnings.length) lines.push("", "หมายเหตุ:", ...warnings.map(w=>"  - "+w));\n'
         '  lines.push("", "ไฟล์แนบ: "+outFile);\n'
         "  return lines.join(\"\\n\");\n"

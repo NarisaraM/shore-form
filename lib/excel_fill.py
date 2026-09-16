@@ -5,7 +5,7 @@ excel_fill.py
 - แต่ละ TERMINAL มีไฟล์ผลลัพธ์ / ชีต / ตำแหน่งเซลล์ ของตัวเอง (ดู TERMINALS ข้างล่าง)
 - รัน No. อัตโนมัติเมื่อมีหลายตู้
 - คอลัมน์ LINE => "HAL"
-- เฉพาะ A3 (C1,C2): คอลัมน์ PAYMENT TAEM => "CREDIT"
+- เฉพาะ A3 (C1,C2): คอลัมน์ PAYMENT TAEM => "ALL PIY CASH ONLY"
 
 ทั้งหมดทำงานด้วย openpyxl (ไม่มี AI)
 """
@@ -34,6 +34,10 @@ AGENT_NAME = "HEUNG-A"
 #     no, container, booking, size, type, size_combo, pod, status,
 #     line, shipper, seal, vessel, voy, vessel_voy, agent, vgm, terminal
 # ---------------------------------------------------------------------------
+# ท่าที่ยังไม่มีช่องกรอก "ชื่อบริษัท/Shipper" แยกในแม่แบบ (หรืออยากให้ย้ำอีกที)
+# จึงต้องแนบชื่อบริษัทไว้ในช่อง REMARK ของแต่ละตู้ด้วย
+REMARK_INCLUDE_COMPANY_KEYS = {"A0", "B3"}
+
 TERMINALS: Dict[str, Dict] = {
     # ---------- A0 : LCMT / LCB1 ----------
     "LCMT Company LTD, ( under LCB1 Group)  A0": {
@@ -71,22 +75,30 @@ TERMINALS: Dict[str, Dict] = {
         },
     },
     # ---------- B5/C3 : LCIT ----------
+    # เขียนลงชีต "DataImport" (รูปแบบไฟล์นำเข้าจริงของท่าเรือ) ไม่ใช่ "Sheet1" (แบบฟอร์มเดิม)
     "B5/C3 LCIT (LAEM CHABANG INTERNATIONAL TERMINAL CO., LTD)": {
         "key": "B5C3",
         "src": "input/B5C3-SHORE.xls",
         "out": "B5C3-SHORE.xlsx",
-        "sheet": "Sheet1",
+        "sheet": "DataImport",
         "header": {},
         "table": {
             "start_row": 2,
             "max_rows": 500,
-            "clear_first": True,        # ล้างข้อมูลตัวอย่างเดิมในชีตก่อน
             "cols": {
-                "no": "A", "booking": "B", "terminal": "C", "pod": "D",
-                "agent": "E", "vessel_voy": "F", "container": "G",
-                "seal": "H", "size_combo": "I",
+                "vessel_voy": "A",   # Vessel Visit
+                "opr": "B",          # Opr
+                "owner": "C",        # Owner
+                "ss": "D",           # SS
+                "status": "E",       # Status (F/E)
+                "container": "F",    # Cntr No
+                "size": "G",         # Size
+                "type": "H",         # Type
+                "pod": "J",          # POD1
+                "booking": "M",      # Bkg No
+                "wt_uom": "P",       # Wt UOM
             },
-            "row_constants": {"terminal": "LCB B5/C3"},
+            "row_constants": {"opr": "HAS", "owner": "HAS", "ss": "EX", "wt_uom": "KG"},
         },
     },
     # ---------- A2 : Thai Laemchabang Terminal (TLT) ----------
@@ -123,7 +135,7 @@ TERMINALS: Dict[str, Dict] = {
                 "commodity": "N", "temp": "O", "vent": "P",
                 "dg_flag": "R", "un_number": "S", "remark": "V",
             },
-            "row_constants": {"payment": "CREDIT"},
+            "row_constants": {"payment": "ALL PIY CASH ONLY"},
         },
     },
 }
@@ -180,7 +192,21 @@ def build_record_rows(payload: Dict) -> List[Dict]:
     pod = (payload.get("pod") or "").strip()
     booking = (payload.get("booking") or "").strip()
     terminal = (payload.get("terminal") or "").strip()
-    remark = (payload.get("remark") or "").strip()
+
+    special_cond = (payload.get("remark") or "").strip()
+    contact_name = (payload.get("contactName") or "").strip()
+    contact_phone = (payload.get("contactPhone") or "").strip()
+    contact_email = (payload.get("contactEmail") or "").strip()
+    contact_line = "Contact: " + " ".join(p for p in (contact_name, contact_phone) if p)
+    if contact_email:
+        contact_line += " " + contact_email
+
+    terminal_key = (TERMINALS.get(terminal) or {}).get("key")
+    remark_parts = [p for p in (special_cond,) if p]
+    if terminal_key in REMARK_INCLUDE_COMPANY_KEYS and shipper:
+        remark_parts.append(shipper)
+    remark_parts.append(contact_line)
+    remark = "\n".join(remark_parts)
 
     rows: List[Dict] = []
     for item in payload.get("rows", []):
@@ -300,8 +326,6 @@ def fill(payload: Dict, base_dir: str, cache_dir: str, out_dir: str) -> Dict:
                 _set(ws, coord, i + 1)
             elif field == "line":                   # คอลัมน์ LINE => HAL
                 _set(ws, coord, LINE_CODE)
-            elif field == "payment":                # คอลัมน์ PAYMENT TAEM => CREDIT
-                _set(ws, coord, "CREDIT")
             elif field == "status":
                 _set(ws, coord, status_code(rec["status"]))
             elif field in rec:

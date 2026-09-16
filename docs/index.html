@@ -255,7 +255,7 @@ const CFG_FALLBACK = {
     "A2 ( Thai Laemchabang Terminal, TLT / 허치슨 )",
     "A3 (C1,C2) (Hutchison Laemchabang Terminal Limited, HLT)"
   ],
-  sizes: ["20 GP","40 GP","40 HQ","20 RF","40 RF","20 UT","40 UT","20 TK","40 TK"],
+  sizes: ["20 GP","40 GP","40 HQ","20 RH","40 RH","20 UT","40 UT","20 TK","40 TK","20 FR","40 FR"],
   statuses: ["FULL","EMPTY"],
   vessels: [
     "CA MANILA","DONGJIN CONFIDENT","HEUNG-A BANGKOK","HEUNG-A HOCHIMINH",
@@ -289,11 +289,11 @@ const TERMINALS = {
       temp:"G",dg_flag:"H",remark:"L"}}
   },
   "B5/C3 LCIT (LAEM CHABANG INTERNATIONAL TERMINAL CO., LTD)": {
-    key:"B5C3", tpl:"templates/B5C3-SHORE.xlsx", out:"B5C3-SHORE.xlsx", sheet:"Sheet1",
+    key:"B5C3", tpl:"templates/B5C3-SHORE.xlsx", out:"B5C3-SHORE.xlsx", sheet:"DataImport",
     header:{},
-    table:{start:2, max:500, clearFirst:true,
-      cols:{no:"A",booking:"B",terminal:"C",pod:"D",agent:"E",vessel_voy:"F",container:"G",seal:"H",size_combo:"I"},
-      rowConst:{terminal:"LCB B5/C3"}}
+    table:{start:2, max:500,
+      cols:{vessel_voy:"A",opr:"B",owner:"C",ss:"D",status:"E",container:"F",size:"G",type:"H",pod:"J",booking:"M",wt_uom:"P"},
+      rowConst:{opr:"HAS",owner:"HAS",ss:"EX",wt_uom:"KG"}}
   },
   "A2 ( Thai Laemchabang Terminal, TLT / 허치슨 )": {
     key:"A2", tpl:"templates/A2-FORM-A.xlsx", out:"A2-FORM A.xlsx", sheet:"FORM A",
@@ -307,7 +307,7 @@ const TERMINALS = {
     table:{start:10, max:19,
       cols:{no:"A",line:"B",shipper:"C",size:"D",type:"E",container:"F",vessel:"G",voy:"H",pod:"I",booking:"K",seal:"L",status:"M",payment:"U",
         commodity:"N",temp:"O",vent:"P",dg_flag:"R",un_number:"S",remark:"V"},
-      rowConst:{payment:"CREDIT"}}
+      rowConst:{payment:"ALL PIY CASH ONLY"}}
   }
 };
 
@@ -590,10 +590,25 @@ function hideErr(name){ const b=$('.msg-err[data-for="'+name+'"]'); if(b) b.clas
 function showErr(name){ const b=$('.msg-err[data-for="'+name+'"]'); if(b) b.classList.add("show"); }
 
 /* ================= สร้างแถวข้อมูล ================= */
+// ท่าที่ยังไม่มีช่องกรอก "ชื่อบริษัท/Shipper" แยกในแม่แบบ (หรืออยากให้ย้ำอีกที)
+// จึงต้องแนบชื่อบริษัทไว้ในช่อง REMARK ของแต่ละตู้ด้วย
+const REMARK_INCLUDE_COMPANY_KEYS = new Set(["A0", "B3"]);
+
 function buildRows(p){
   const vessel = p.vessel.trim(), voy = p.voy.trim();
   const vv = (vessel || voy) ? (vessel + " V." + voy).trim() : "";
-  const remark = (p.remark || "").trim();
+
+  const specialCond = (p.remark || "").trim();
+  const contactLine = "Contact: "+(p.contactName||"").trim()+" "+(p.contactPhone||"").trim()+
+    ((p.contactEmail||"").trim() ? " "+(p.contactEmail||"").trim() : "");
+  const conf = TERMINALS[p.terminal];
+  const needsCompany = conf && REMARK_INCLUDE_COMPANY_KEYS.has(conf.key);
+  const remarkParts = [];
+  if(specialCond) remarkParts.push(specialCond);
+  if(needsCompany && p.shipper.trim()) remarkParts.push(p.shipper.trim());
+  remarkParts.push(contactLine);
+  const remark = remarkParts.join("\n");
+
   return p.rows.map(it=>{
     const raw = (it.size || "").trim();
     const [sn, st] = splitSize(raw);
@@ -668,7 +683,6 @@ async function fillTemplate(conf, rows){
       if(field in rc)                 val = rc[field];
       else if(field === "no")         val = i + 1;
       else if(field === "line")       val = LINE_CODE;
-      else if(field === "payment")    val = "CREDIT";
       else if(field === "status")     val = statusCode(rec.status);
       else                            val = rec[field];
       set(addr, val);
@@ -718,15 +732,14 @@ async function submitForm(ev){
   const conf = TERMINALS[terminal];
   if(!conf){ showResultError("ไม่รู้จัก TERMINAL: " + terminal); return; }
 
-  const contactLine = "Contact: "+$("#contactName").value.trim()+" "+$("#contactPhone").value.trim()+
-    ($("#contactEmail").value.trim() ? " "+$("#contactEmail").value.trim() : "");
-  const specialCond = $("#remark").value.trim();
-  const remark = [specialCond, contactLine].filter(Boolean).join(" | ");
-
   const payload = {
     terminal,
     vessel:$("#vessel").value, voy:$("#voy").value, shipper:$("#shipper").value,
-    pod:$("#pod").value, booking:$("#booking").value, remark,
+    pod:$("#pod").value, booking:$("#booking").value,
+    remark: $("#remark").value.trim(),
+    contactName: $("#contactName").value.trim(),
+    contactPhone: $("#contactPhone").value.trim(),
+    contactEmail: $("#contactEmail").value.trim(),
     rows: containers.map(c=>({size:c.size, container:c.container, status:c.status,
       commodity:c.commodity, temp:c.temp, vent:c.vent, dgUn:c.dgUn}))
   };

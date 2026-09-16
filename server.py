@@ -52,7 +52,13 @@ def _build_mail(payload: dict, result: dict):
     shipper = payload.get("shipper", "")
     pod = payload.get("pod", "")
     booking = payload.get("booking", "")
-    remark = payload.get("remark", "")
+    special_cond = payload.get("remark", "")
+    contact_name = payload.get("contactName", "")
+    contact_phone = payload.get("contactPhone", "")
+    contact_email = payload.get("contactEmail", "")
+    contact_line = "Contact: " + " ".join(p for p in (contact_name, contact_phone) if p)
+    if contact_email:
+        contact_line += " " + contact_email
     rows = payload.get("rows", [])
 
     subject = f"[SHORE] {result.get('terminal_key','')} - {vessel} V.{voy} - Booking {booking}"
@@ -82,8 +88,9 @@ def _build_mail(payload: dict, result: dict):
         lines.append(
             f"  {i}. {r.get('container','')}  size={r.get('size','')}  status={r.get('status','')}{extra_str}"
         )
-    if remark:
-        lines += ["", f"Special Condition / ผู้ติดต่อ: {remark}"]
+    lines += ["", f"ผู้ติดต่อ: {contact_line}"]
+    if special_cond:
+        lines += [f"Special Condition Request: {special_cond}"]
     if result.get("warnings"):
         lines += ["", "หมายเหตุ:"] + [f"  - {w}" for w in result["warnings"]]
     lines += ["", f"ไฟล์แนบ: {result.get('out_file','')}", "", "-- ส่งอัตโนมัติจากระบบ Self Service Shore --"]

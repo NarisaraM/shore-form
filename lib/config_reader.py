@@ -33,8 +33,8 @@ FALLBACK = {
         "A3 (C1,C2) (Hutchison Laemchabang Terminal Limited, HLT)",
     ],
     "sizes": [
-        "20 GP", "40 GP", "40 HQ", "20 RF", "40 RF",
-        "20 UT", "40 UT", "20 TK", "40 TK",
+        "20 GP", "40 GP", "40 HQ", "20 RH", "40 RH",
+        "20 UT", "40 UT", "20 TK", "40 TK", "20 FR", "40 FR",
     ],
     "statuses": ["FULL", "EMPTY"],
     "vessels": [
