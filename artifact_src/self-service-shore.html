@@ -264,15 +264,17 @@ function buildMailBody(payload, rows, outFile, warnings){
       <label class="q" for="mCommodity">Commodity <span class="opt">(ถ้ามี)</span></label>
       <input type="text" id="mCommodity" placeholder="เช่น FROZEN SEAFOOD" />
     </div>
-    <div class="field field-2col">
-      <div>
-        <label class="q" for="mTemp">Temperature <span class="opt">(for RF)</span></label>
-        <input type="text" id="mTemp" placeholder="เช่น -18℃" />
-      </div>
-      <div>
-        <label class="q" for="mVent">Vent % <span class="opt">(for RF)</span></label>
-        <input type="text" id="mVent" placeholder="เช่น 15%" />
-      </div>
+    <div class="field">
+      <label class="q" for="mTemp">Temperature <span class="opt">(For Reefer)</span></label>
+      <input type="text" id="mTemp" placeholder="เช่น -18℃" />
+    </div>
+    <div class="field">
+      <label class="q" for="mHumidity">Humidity <span class="opt">(ถ้ามี)</span></label>
+      <input type="text" id="mHumidity" placeholder="เช่น 85%" />
+    </div>
+    <div class="field">
+      <label class="q" for="mVent">Vent % <span class="opt">(For Reefer)</span></label>
+      <input type="text" id="mVent" placeholder="เช่น 15%" />
     </div>
     <div class="field">
       <label class="q" for="mDgUn">DG Class / UN Number <span class="opt">(ถ้ามี)</span></label>
@@ -546,13 +548,14 @@ function openModal(index){
     const c = containers[editIndex];
     $("#mSize").value=c.size; $("#mCntr").value=c.container; $("#mStatus").value=c.status;
     $("#mCommodity").value=c.commodity||""; $("#mTemp").value=c.temp||"";
+    $("#mHumidity").value=c.humidity||"";
     $("#mVent").value=c.vent||""; $("#mDgUn").value=c.dgUn||"";
     $("#modalTitle").textContent = "แก้ไขข้อมูลตู้ #" + (editIndex+1);
     $("#mConfirmMore").style.display = "none";
     $("#mConfirm").textContent = "บันทึก";
   }else{
     $("#mSize").value=""; $("#mCntr").value=""; $("#mStatus").value="";
-    $("#mCommodity").value=""; $("#mTemp").value=""; $("#mVent").value=""; $("#mDgUn").value="";
+    $("#mCommodity").value=""; $("#mTemp").value=""; $("#mHumidity").value=""; $("#mVent").value=""; $("#mDgUn").value="";
     $("#modalTitle").textContent = "เพิ่มข้อมูลตู้";
     $("#mConfirmMore").style.display = "";
     $("#mConfirm").textContent = "＋ เพิ่มตู้";
@@ -574,6 +577,7 @@ function readModal(){
     size, container, status,
     commodity: $("#mCommodity").value.trim(),
     temp: $("#mTemp").value.trim(),
+    humidity: $("#mHumidity").value.trim(),
     vent: $("#mVent").value.trim(),
     dgUn: $("#mDgUn").value.trim()
   };
@@ -602,6 +606,7 @@ function renderContainers(){
     const extra = [];
     if(c.dgUn) extra.push('<span class="badge e">DG</span>');
     if(c.temp) extra.push('<span class="badge">'+escapeHtml(c.temp)+'</span>');
+    if(c.humidity) extra.push('<span class="badge">'+escapeHtml(c.humidity)+'</span>');
     row.innerHTML =
       '<div class="idx">'+(i+1)+'</div>'+
       '<div class="info"><div class="cn">'+escapeHtml(c.container)+'</div>'+
@@ -662,7 +667,7 @@ function buildRows(p){
       terminal:p.terminal, agent:AGENT_NAME, line:LINE_CODE,
       seal:(it.seal||"").trim(), vgm:(it.vgm||"").trim(),
       commodity:(it.commodity||"").trim(),
-      temp:(it.temp||"").trim(), vent:(it.vent||"").trim(),
+      temp:(it.temp||"").trim(), humidity:(it.humidity||"").trim(), vent:(it.vent||"").trim(),
       un_number: dgUn, dg_flag: dgUn ? "Y" : "",
       remark: remark
     };

@@ -32,7 +32,8 @@ AGENT_NAME = "HEUNG-A"
 #            cols = ชื่อฟิลด์ -> ตัวอักษรคอลัมน์
 #   ฟิลด์ที่ใช้ได้ใน cols:
 #     no, container, booking, size, type, size_combo, pod, status,
-#     line, shipper, seal, vessel, voy, vessel_voy, agent, vgm, terminal
+#     line, shipper, seal, vessel, voy, vessel_voy, agent, vgm, terminal,
+#     commodity, temp, humidity, vent, dg_flag, un_number, remark
 # ---------------------------------------------------------------------------
 # ท่าที่ยังไม่มีช่องกรอก "ชื่อบริษัท/Shipper" แยกในแม่แบบ (หรืออยากให้ย้ำอีกที)
 # จึงต้องแนบชื่อบริษัทไว้ในช่อง REMARK ของแต่ละตู้ด้วย
@@ -233,6 +234,7 @@ def build_record_rows(payload: Dict) -> List[Dict]:
             "vgm": (item.get("vgm") or "").strip(),
             "commodity": (item.get("commodity") or "").strip(),
             "temp": (item.get("temp") or "").strip(),
+            "humidity": (item.get("humidity") or "").strip(),
             "vent": (item.get("vent") or "").strip(),
             "un_number": dg_un,
             "dg_flag": "Y" if dg_un else "",
