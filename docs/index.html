@@ -116,8 +116,10 @@
 
       <div class="field">
         <label class="q" for="vessel">Vessel (ชื่อเรือ) <span class="star">*</span></label>
-        <input type="text" id="vessel" name="vessel" placeholder="เช่น HEUNG-A BANGKOK" required />
-        <div class="msg-err" data-for="vessel">กรุณากรอกชื่อเรือ</div>
+        <select id="vessel" name="vessel" required>
+          <option value="" disabled selected>— เลือกชื่อเรือ —</option>
+        </select>
+        <div class="msg-err" data-for="vessel">กรุณาเลือกชื่อเรือ</div>
       </div>
 
       <div class="field">
@@ -254,7 +256,18 @@ const CFG_FALLBACK = {
     "A3 (C1,C2) (Hutchison Laemchabang Terminal Limited, HLT)"
   ],
   sizes: ["20 GP","40 GP","40 HQ","20 RF","40 RF","20 UT","40 UT","20 TK","40 TK"],
-  statuses: ["FULL","EMPTY"]
+  statuses: ["FULL","EMPTY"],
+  vessels: [
+    "CA MANILA","DONGJIN CONFIDENT","HEUNG-A BANGKOK","HEUNG-A HOCHIMINH",
+    "INCHEON VOYAGER","KMTC BANGKOK","KMTC GWANGYANG","KMTC JAKARTA",
+    "KMTC SURABAYA","KMTC TAIPEIS","KMTC ULSAN","KMTC XIAMEN",
+    "LAEM CHABANG VOYAGER","PANCON CHAMPION","PEGASUS PROTO",
+    "SAWASDEE ALTAIR","SAWASDEE ATLANTIC","SAWASDEE BALTIC",
+    "SAWASDEE CAPELLA","SAWASDEE DENEB","SAWASDEE INCHEON",
+    "SAWASDEE MIMOSA","SAWASDEE RIGEL","SAWASDEE SPICA",
+    "SAWASDEE SUNRISE","SAWASDEE VEGA","SKY ORION","STARSHIP JUPITER",
+    "TIANJIN BRIDGE","TS TIANJIN","TS XIAMEN","YEOSU VOYAGER"
+  ]
 };
 
 const LINE_CODE = "HAL";
@@ -432,7 +445,7 @@ function cellHasValueXml(xml, addr){
   return /<v>|<is>/.test(m[0]);
 }
 
-/* ================= โหลดตัวเลือกจาก Check.xlsx ================= */
+/* ================= โหลดตัวเลือกจาก Check.xlsx + VSLNAME.xls ================= */
 async function loadConfig(){
   let cfg = CFG_FALLBACK;
   try{
@@ -453,12 +466,25 @@ async function loadConfig(){
       cfg = {
         terminals: T.length ? T : CFG_FALLBACK.terminals,
         sizes:     S.length ? S : CFG_FALLBACK.sizes,
-        statuses:  ST.length ? ST : CFG_FALLBACK.statuses
+        statuses:  ST.length ? ST : CFG_FALLBACK.statuses,
+        vessels:   CFG_FALLBACK.vessels
       };
     }
   }catch(e){ /* ใช้ fallback */ }
 
+  try{
+    const res = await fetch("VSLNAME.xls", {cache:"no-store"});
+    if(res.ok){
+      const wb = XLSX.read(await res.arrayBuffer(), {type:"array"});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, blankrows:false, defval:""});
+      const V = rows.slice(1).map(r=>String(r[0] ?? "").trim()).filter(Boolean);
+      if(V.length) cfg.vessels = V;
+    }
+  }catch(e){ /* ใช้ fallback */ }
+
   fillSelect($("#terminal"), cfg.terminals, "— เลือกท่า —");
+  fillSelect($("#vessel"), cfg.vessels, "— เลือกชื่อเรือ —");
   fillSelect($("#mSize"), cfg.sizes, "— เลือกขนาด —");
   fillSelect($("#mStatus"), cfg.statuses, "— เลือกสถานะ —");
 }

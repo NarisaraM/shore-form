@@ -198,8 +198,10 @@
 
       <div class="field">
         <label class="q" for="vessel">Vessel (ชื่อเรือ) <span class="star">*</span></label>
-        <input type="text" id="vessel" name="vessel" placeholder="เช่น HEUNG-A BANGKOK" required />
-        <div class="msg-err" data-for="vessel">กรุณากรอกชื่อเรือ</div>
+        <select id="vessel" name="vessel" required>
+          <option value="" disabled selected>— เลือกชื่อเรือ —</option>
+        </select>
+        <div class="msg-err" data-for="vessel">กรุณาเลือกชื่อเรือ</div>
       </div>
 
       <div class="field">
@@ -345,7 +347,18 @@ const CFG_FALLBACK = {
     "A3 (C1,C2) (Hutchison Laemchabang Terminal Limited, HLT)"
   ],
   sizes: ["20 GP","40 GP","40 HQ","20 RF","40 RF","20 UT","40 UT","20 TK","40 TK"],
-  statuses: ["FULL","EMPTY"]
+  statuses: ["FULL","EMPTY"],
+  vessels: [
+    "CA MANILA","DONGJIN CONFIDENT","HEUNG-A BANGKOK","HEUNG-A HOCHIMINH",
+    "INCHEON VOYAGER","KMTC BANGKOK","KMTC GWANGYANG","KMTC JAKARTA",
+    "KMTC SURABAYA","KMTC TAIPEIS","KMTC ULSAN","KMTC XIAMEN",
+    "LAEM CHABANG VOYAGER","PANCON CHAMPION","PEGASUS PROTO",
+    "SAWASDEE ALTAIR","SAWASDEE ATLANTIC","SAWASDEE BALTIC",
+    "SAWASDEE CAPELLA","SAWASDEE DENEB","SAWASDEE INCHEON",
+    "SAWASDEE MIMOSA","SAWASDEE RIGEL","SAWASDEE SPICA",
+    "SAWASDEE SUNRISE","SAWASDEE VEGA","SKY ORION","STARSHIP JUPITER",
+    "TIANJIN BRIDGE","TS TIANJIN","TS XIAMEN","YEOSU VOYAGER"
+  ]
 };
 
 const CONTAINER_RE = /^[A-Z]{4}\d{7}$/;
@@ -374,6 +387,7 @@ async function loadConfig(){
   }catch(e){ /* ใช้ fallback */ }
 
   fillSelect($("#terminal"), cfg.terminals, "— เลือกท่า —");
+  fillSelect($("#vessel"), cfg.vessels, "— เลือกชื่อเรือ —");
   fillSelect($("#mSize"), cfg.sizes, "— เลือกขนาด —");
   fillSelect($("#mStatus"), cfg.statuses, "— เลือกสถานะ —");
 }

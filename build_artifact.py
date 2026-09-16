@@ -34,6 +34,7 @@ TEMPLATES = {
     "A3C1C2": "docs/templates/A3C1C2-HUTCHISON.xlsx",
 }
 CHECK_XLSX = "docs/Check.xlsx"
+VSLNAME_XLS = "docs/VSLNAME.xls"
 LOGO_PNG = "docs/logo.png"
 
 
@@ -64,11 +65,13 @@ def main():
     # ---- 3) ฝังไฟล์แม่แบบ + Check.xlsx เป็น base64 (แทรกก่อนสคริปต์หลัก) ----
     templates_js = ",\n  ".join(f'"{k}": "{b64_of(p)}"' for k, p in TEMPLATES.items())
     check_b64 = b64_of(CHECK_XLSX)
+    vslname_b64 = b64_of(VSLNAME_XLS)
     embedded_block = (
         "<script>\n"
-        "/* ไฟล์แม่แบบ Excel + Check.xlsx ฝังไว้เป็น base64 (Artifact ไม่มีไฟล์พี่น้องให้ fetch) */\n"
+        "/* ไฟล์แม่แบบ Excel + Check.xlsx + VSLNAME.xls ฝังไว้เป็น base64 (Artifact ไม่มีไฟล์พี่น้องให้ fetch) */\n"
         "const TEMPLATES_B64 = {\n  " + templates_js + "\n};\n"
         'const CHECK_B64 = "' + check_b64 + '";\n'
+        'const VSLNAME_B64 = "' + vslname_b64 + '";\n'
         "function b64ToArrayBuffer(b64){\n"
         "  const bin = atob(b64);\n"
         "  const bytes = new Uint8Array(bin.length);\n"
@@ -108,7 +111,7 @@ def main():
         "</script>\n"
     )
 
-    # ---- 4) แก้ loadConfig ให้อ่านจาก CHECK_B64 แทน fetch ----
+    # ---- 4) แก้ loadConfig ให้อ่านจาก CHECK_B64/VSLNAME_B64 แทน fetch ----
     old_load = '''  try{
     const res = await fetch("Check.xlsx", {cache:"no-store"});
     if(res.ok){
@@ -127,8 +130,20 @@ def main():
       cfg = {
         terminals: T.length ? T : CFG_FALLBACK.terminals,
         sizes:     S.length ? S : CFG_FALLBACK.sizes,
-        statuses:  ST.length ? ST : CFG_FALLBACK.statuses
+        statuses:  ST.length ? ST : CFG_FALLBACK.statuses,
+        vessels:   CFG_FALLBACK.vessels
       };
+    }
+  }catch(e){ /* ใช้ fallback */ }
+
+  try{
+    const res = await fetch("VSLNAME.xls", {cache:"no-store"});
+    if(res.ok){
+      const wb = XLSX.read(await res.arrayBuffer(), {type:"array"});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, blankrows:false, defval:""});
+      const V = rows.slice(1).map(r=>String(r[0] ?? "").trim()).filter(Boolean);
+      if(V.length) cfg.vessels = V;
     }
   }catch(e){ /* ใช้ fallback */ }'''
     new_load = '''  try{
@@ -147,8 +162,17 @@ def main():
     cfg = {
       terminals: T.length ? T : CFG_FALLBACK.terminals,
       sizes:     S.length ? S : CFG_FALLBACK.sizes,
-      statuses:  ST.length ? ST : CFG_FALLBACK.statuses
+      statuses:  ST.length ? ST : CFG_FALLBACK.statuses,
+      vessels:   CFG_FALLBACK.vessels
     };
+  }catch(e){ /* ใช้ fallback */ }
+
+  try{
+    const wb = XLSX.read(b64ToArrayBuffer(VSLNAME_B64), {type:"array"});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1, blankrows:false, defval:""});
+    const V = rows.slice(1).map(r=>String(r[0] ?? "").trim()).filter(Boolean);
+    if(V.length) cfg.vessels = V;
   }catch(e){ /* ใช้ fallback */ }'''
     assert old_load in body_inner, "หา loadConfig เดิมไม่เจอ"
     body_inner = body_inner.replace(old_load, new_load)

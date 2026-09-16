@@ -58,6 +58,10 @@ def main():
     shutil.copyfile(os.path.join(INPUT, "Check.xlsx"), os.path.join(DOCS, "Check.xlsx"))
     print("  คัดลอก Check.xlsx")
 
+    # VSLNAME.xls (รายชื่อเรือสำหรับ dropdown Vessel)
+    shutil.copyfile(os.path.join(INPUT, "VSLNAME.xls"), os.path.join(DOCS, "VSLNAME.xls"))
+    print("  คัดลอก VSLNAME.xls")
+
     # .nojekyll (กัน GitHub Pages ประมวลผลแบบ Jekyll)
     open(os.path.join(DOCS, ".nojekyll"), "w").close()
     print("  สร้าง docs/.nojekyll")

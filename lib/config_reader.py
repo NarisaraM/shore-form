@@ -5,7 +5,10 @@ config_reader.py
 - คอลัมน์ A เป็นหัวข้อ (Terminal / SIZE / STATUS F/E)
 - คอลัมน์ B เป็นค่าตัวเลือกของหัวข้อนั้น ๆ ไล่ลงมาจนกว่าจะเจอหัวข้อใหม่
 
-ไม่มีการใช้ AI ใด ๆ ทั้งสิ้น เป็นการอ่านไฟล์ Excel ตรง ๆ ด้วย openpyxl
+และอ่านไฟล์ VSLNAME.xls (คอลัมน์ A แถวแรกเป็นหัวข้อ "Vessel Name" ที่เหลือเป็นรายชื่อเรือ)
+เพื่อดึงตัวเลือกชื่อเรือ
+
+ไม่มีการใช้ AI ใด ๆ ทั้งสิ้น เป็นการอ่านไฟล์ Excel ตรง ๆ ด้วย openpyxl/xlrd
 """
 
 from __future__ import annotations
@@ -14,9 +17,11 @@ import os
 from typing import Dict, List
 
 import openpyxl
+import xlrd
 
 # ชื่อไฟล์คำสั่งตัวเลือก
 CHECK_FILE = os.path.join("input", "Check.xlsx")
+VSLNAME_FILE = os.path.join("input", "VSLNAME.xls")
 
 # ค่าที่ใช้สำรอง เผื่อเปิดไฟล์ Check.xlsx ไม่ได้ (คัดลอกจากไฟล์จริง ณ วันที่สร้างสคริปต์)
 FALLBACK = {
@@ -32,6 +37,17 @@ FALLBACK = {
         "20 UT", "40 UT", "20 TK", "40 TK",
     ],
     "statuses": ["FULL", "EMPTY"],
+    "vessels": [
+        "CA MANILA", "DONGJIN CONFIDENT", "HEUNG-A BANGKOK", "HEUNG-A HOCHIMINH",
+        "INCHEON VOYAGER", "KMTC BANGKOK", "KMTC GWANGYANG", "KMTC JAKARTA",
+        "KMTC SURABAYA", "KMTC TAIPEIS", "KMTC ULSAN", "KMTC XIAMEN",
+        "LAEM CHABANG VOYAGER", "PANCON CHAMPION", "PEGASUS PROTO",
+        "SAWASDEE ALTAIR", "SAWASDEE ATLANTIC", "SAWASDEE BALTIC",
+        "SAWASDEE CAPELLA", "SAWASDEE DENEB", "SAWASDEE INCHEON",
+        "SAWASDEE MIMOSA", "SAWASDEE RIGEL", "SAWASDEE SPICA",
+        "SAWASDEE SUNRISE", "SAWASDEE VEGA", "SKY ORION", "STARSHIP JUPITER",
+        "TIANJIN BRIDGE", "TS TIANJIN", "TS XIAMEN", "YEOSU VOYAGER",
+    ],
 }
 
 # คำที่ถือว่าเป็น "หัวข้อ" ในคอลัมน์ A
@@ -42,6 +58,26 @@ _HEADER_STATUS = ("status",)
 
 def _norm(value) -> str:
     return str(value).strip() if value is not None else ""
+
+
+def _read_vessels(base_dir: str) -> List[str]:
+    path = os.path.join(base_dir, VSLNAME_FILE)
+    if not os.path.isfile(path):
+        return list(FALLBACK["vessels"])
+
+    try:
+        book = xlrd.open_workbook(path)
+        sheet = book.sheets()[0]
+    except Exception:
+        return list(FALLBACK["vessels"])
+
+    vessels: List[str] = []
+    for r in range(1, sheet.nrows):  # แถว 0 เป็นหัวข้อ "Vessel Name"
+        name = _norm(sheet.cell_value(r, 0)) if sheet.ncols > 0 else ""
+        if name:
+            vessels.append(name)
+
+    return vessels or list(FALLBACK["vessels"])
 
 
 def read_config(base_dir: str) -> Dict[str, List[str]]:
@@ -96,6 +132,7 @@ def read_config(base_dir: str) -> Dict[str, List[str]]:
         "terminals": terminals or list(FALLBACK["terminals"]),
         "sizes": sizes or list(FALLBACK["sizes"]),
         "statuses": statuses or list(FALLBACK["statuses"]),
+        "vessels": _read_vessels(base_dir),
     }
     return result
 
