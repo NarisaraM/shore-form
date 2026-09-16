@@ -61,8 +61,12 @@
   .field:first-child{margin-top:6px}
   label.q{display:block;font-size:15px;font-weight:500;margin-bottom:10px}
   label.q .star{color:var(--danger);margin-left:3px}
+  label.q .opt{color:var(--muted);font-weight:400;font-size:13px;margin-left:3px}
+  .field-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .field-2col .q{margin-bottom:10px}
+  @media (max-width:480px){.field-2col{grid-template-columns:1fr}}
 
-  input[type=text],select{
+  input[type=text],select,textarea{
     width:100%;
     font-size:15px;
     font-family:inherit;
@@ -74,13 +78,16 @@
     outline:none;
     transition:border-color .15s,box-shadow .15s;
   }
-  input[type=text]:focus,select:focus{
+  textarea{resize:vertical;min-height:60px}
+  input[type=text]:focus,select:focus,textarea:focus{
     border-color:var(--purple);
     box-shadow:0 0 0 3px rgba(103,58,183,.15);
   }
-  input.err,select.err{border-color:var(--danger);box-shadow:0 0 0 3px rgba(217,48,37,.12)}
+  input.err,select.err,textarea.err{border-color:var(--danger);box-shadow:0 0 0 3px rgba(217,48,37,.12)}
   .msg-err{color:var(--danger);font-size:13px;margin-top:6px;display:none}
   .msg-err.show{display:block}
+  .confirm-row{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.5;cursor:pointer;margin-bottom:16px}
+  .confirm-row input[type=checkbox]{flex:none;width:18px;height:18px;margin-top:2px;accent-color:var(--purple)}
 
   /* ---- ปุ่ม ---- */
   button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;font-size:15px}
@@ -233,7 +240,39 @@
       </div>
     </div>
 
+    <div class="card section-title">
+      <h2>ข้อมูลเพิ่มเติม <span class="sub">Special Condition / ผู้ติดต่อ</span></h2>
+
+      <div class="field">
+        <label class="q" for="remark">Special Condition Request <span class="opt">(ถ้ามี)</span></label>
+        <textarea id="remark" rows="2" placeholder="เช่น Request container on deck"></textarea>
+      </div>
+
+      <div class="field field-2col">
+        <div>
+          <label class="q" for="contactName">ชื่อผู้ติดต่อ (Name) <span class="star">*</span></label>
+          <input type="text" id="contactName" placeholder="ชื่อ-นามสกุล" required />
+          <div class="msg-err" data-for="contactName">กรุณากรอกชื่อผู้ติดต่อ</div>
+        </div>
+        <div>
+          <label class="q" for="contactPhone">เบอร์โทร (Phone) <span class="star">*</span></label>
+          <input type="text" id="contactPhone" placeholder="0812345678" required />
+          <div class="msg-err" data-for="contactPhone">กรุณากรอกเบอร์โทร</div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="q" for="contactEmail">อีเมล (Email) <span class="star">*</span></label>
+        <input type="text" id="contactEmail" placeholder="name@heungaline.co.th" required />
+        <div class="msg-err" data-for="contactEmail">กรุณากรอกอีเมลผู้ติดต่อ</div>
+      </div>
+    </div>
+
     <div class="card">
+      <label class="confirm-row">
+        <input type="checkbox" id="confirmCheck" />
+        <span>ยืนยันว่าข้อมูลที่กรอกถูกต้อง ก่อนส่งอีเมลไปยังผู้เกี่ยวข้อง</span>
+      </label>
+      <div class="msg-err" data-for="confirm">กรุณากดยืนยันข้อมูลก่อนส่ง</div>
       <button type="submit" class="btn-primary" id="btnSubmit">ส่งข้อมูล</button>
       <button type="button" class="btn-text" id="btnReset" style="margin-left:8px">ล้างฟอร์ม</button>
     </div>
@@ -265,6 +304,25 @@
       <label class="q" for="mStatus">STATUS F/E <span class="star">*</span></label>
       <select id="mStatus"><option value="" disabled selected>— เลือกสถานะ —</option></select>
       <div class="msg-err" data-for="mStatus">กรุณาเลือกสถานะ</div>
+    </div>
+
+    <div class="field">
+      <label class="q" for="mCommodity">Commodity <span class="opt">(ถ้ามี)</span></label>
+      <input type="text" id="mCommodity" placeholder="เช่น FROZEN SEAFOOD" />
+    </div>
+    <div class="field field-2col">
+      <div>
+        <label class="q" for="mTemp">Temperature <span class="opt">(for RF)</span></label>
+        <input type="text" id="mTemp" placeholder="เช่น -18℃" />
+      </div>
+      <div>
+        <label class="q" for="mVent">Vent % <span class="opt">(for RF)</span></label>
+        <input type="text" id="mVent" placeholder="เช่น 15%" />
+      </div>
+    </div>
+    <div class="field">
+      <label class="q" for="mDgUn">DG Class / UN Number <span class="opt">(ถ้ามี)</span></label>
+      <input type="text" id="mDgUn" placeholder="เช่น Class 9 / UN3082" />
     </div>
 
     <div class="actions">
@@ -342,11 +400,14 @@ function openModal(index){
     $("#mSize").value = c.size;
     $("#mCntr").value = c.container;
     $("#mStatus").value = c.status;
+    $("#mCommodity").value = c.commodity||""; $("#mTemp").value = c.temp||"";
+    $("#mVent").value = c.vent||""; $("#mDgUn").value = c.dgUn||"";
     $("#modalTitle").textContent = "แก้ไขข้อมูลตู้ #" + (editIndex+1);
     $("#mConfirmMore").style.display = "none";
     $("#mConfirm").textContent = "บันทึก";
   }else{
     $("#mSize").value = ""; $("#mCntr").value = ""; $("#mStatus").value = "";
+    $("#mCommodity").value = ""; $("#mTemp").value = ""; $("#mVent").value = ""; $("#mDgUn").value = "";
     $("#modalTitle").textContent = "เพิ่มข้อมูลตู้";
     $("#mConfirmMore").style.display = "";
     $("#mConfirm").textContent = "＋ เพิ่มตู้";
@@ -366,7 +427,13 @@ function readModal(){
   const cnBad = !CONTAINER_RE.test(container);
   setErr($("#mCntr"), cnBad);
   if(!size || !status || cnBad) ok = false;
-  return ok ? {size, container, status} : null;
+  return ok ? {
+    size, container, status,
+    commodity: $("#mCommodity").value.trim(),
+    temp: $("#mTemp").value.trim(),
+    vent: $("#mVent").value.trim(),
+    dgUn: $("#mDgUn").value.trim()
+  } : null;
 }
 
 function commitModal(keepOpen){
@@ -396,12 +463,15 @@ function renderContainers(){
     row.className = "cntr-item";
     const st = (c.status||"").toUpperCase();
     const cls = st === "FULL" ? "f" : (st === "EMPTY" ? "e" : "");
+    const extra = [];
+    if(c.dgUn) extra.push('<span class="badge e">DG</span>');
+    if(c.temp) extra.push('<span class="badge">'+escapeHtml(c.temp)+'</span>');
     row.innerHTML =
       '<div class="idx">'+(i+1)+'</div>'+
       '<div class="info">'+
         '<div class="cn">'+escapeHtml(c.container)+'</div>'+
         '<div class="meta"><span class="badge">'+escapeHtml(c.size)+'</span>'+
-        '<span class="badge '+cls+'">'+escapeHtml(st)+'</span></div>'+
+        '<span class="badge '+cls+'">'+escapeHtml(st)+'</span>'+extra.join("")+'</div>'+
       '</div>'+
       '<button type="button" class="btn-text" data-edit="'+i+'">แก้ไข</button>'+
       '<button type="button" class="x" data-del="'+i+'" title="ลบ">&times;</button>';
@@ -439,13 +509,14 @@ function showErr(name){
 /* ---------- validate + submit ---------- */
 function validateForm(){
   let ok = true;
-  ["terminal","vessel","voy","shipper","pod","booking"].forEach(id=>{
+  ["terminal","vessel","voy","shipper","pod","booking","contactName","contactPhone","contactEmail"].forEach(id=>{
     const el = $("#"+id);
     const bad = !el.value.trim();
     setErr(el, bad);
     if(bad) ok = false;
   });
   if(containers.length === 0){ showErr("rows"); ok = false; }
+  if(!$("#confirmCheck").checked){ showErr("confirm"); ok = false; } else hideErr("confirm");
   return ok;
 }
 
@@ -457,6 +528,11 @@ async function submitForm(ev){
     if(firstErr) firstErr.scrollIntoView({behavior:"smooth", block:"center"});
     return;
   }
+  const contactLine = "Contact: "+$("#contactName").value.trim()+" "+$("#contactPhone").value.trim()+
+    ($("#contactEmail").value.trim() ? " "+$("#contactEmail").value.trim() : "");
+  const specialCond = $("#remark").value.trim();
+  const remark = [specialCond, contactLine].filter(Boolean).join(" | ");
+
   const payload = {
     terminal: $("#terminal").value,
     vessel:   $("#vessel").value.trim(),
@@ -464,7 +540,9 @@ async function submitForm(ev){
     shipper:  $("#shipper").value.trim(),
     pod:      $("#pod").value.trim(),
     booking:  $("#booking").value.trim(),
-    rows:     containers.map(c => ({size:c.size, container:c.container, status:c.status}))
+    remark:   remark,
+    rows:     containers.map(c => ({size:c.size, container:c.container, status:c.status,
+      commodity:c.commodity, temp:c.temp, vent:c.vent, dgUn:c.dgUn}))
   };
 
   const btn = $("#btnSubmit");
@@ -545,10 +623,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
   });
 
   // ลบ error เมื่อผู้ใช้เริ่มพิมพ์
-  $$("#form input, #form select").forEach(el=>{
+  $$("#form input, #form select, #form textarea").forEach(el=>{
     el.addEventListener("input", ()=>setErr(el, false));
     el.addEventListener("change", ()=>setErr(el, false));
   });
+  $("#confirmCheck").addEventListener("change", ()=>hideErr("confirm"));
 });
 </script>
 </body>

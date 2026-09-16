@@ -32,15 +32,22 @@
   .field:first-child{margin-top:6px}
   label.q{display:block;font-size:15px;font-weight:500;margin-bottom:10px}
   label.q .star{color:var(--danger);margin-left:3px}
-  input[type=text],select{
+  label.q .opt{color:var(--muted);font-weight:400;font-size:13px;margin-left:3px}
+  .field-2col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .field-2col .q{margin-bottom:10px}
+  @media (max-width:480px){.field-2col{grid-template-columns:1fr}}
+  input[type=text],select,textarea{
     width:100%;font-size:15px;font-family:inherit;color:var(--text);background:#fff;
     border:1px solid var(--line);border-radius:8px;padding:11px 12px;outline:none;
     transition:border-color .15s,box-shadow .15s;
   }
-  input[type=text]:focus,select:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(103,58,183,.15)}
-  input.err,select.err{border-color:var(--danger);box-shadow:0 0 0 3px rgba(217,48,37,.12)}
+  textarea{resize:vertical;min-height:60px}
+  input[type=text]:focus,select:focus,textarea:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(103,58,183,.15)}
+  input.err,select.err,textarea.err{border-color:var(--danger);box-shadow:0 0 0 3px rgba(217,48,37,.12)}
   .msg-err{color:var(--danger);font-size:13px;margin-top:6px;display:none}
   .msg-err.show{display:block}
+  .confirm-row{display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.5;cursor:pointer;margin-bottom:16px}
+  .confirm-row input[type=checkbox]{flex:none;width:18px;height:18px;margin-top:2px;accent-color:var(--purple)}
   button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;font-size:15px}
   .btn-primary{background:var(--purple);color:#fff;padding:12px 30px;font-weight:600;box-shadow:0 1px 2px rgba(60,64,67,.3)}
   .btn-primary:hover{background:var(--purple-dark)}
@@ -93,6 +100,36 @@ function b64ToArrayBuffer(b64){
   const bytes = new Uint8Array(bin.length);
   for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
   return bytes.buffer;
+}
+
+/* ผู้รับอีเมล + เนื้อหาอีเมล สำหรับการส่งผ่าน Gmail (เวอร์ชัน docs/ แบบ static ตัดออกแล้ว
+   เพราะ GitHub Pages ส่งอีเมลตรงไม่ได้ แต่ Artifact เชื่อม Gmail ของผู้ใช้ได้จริง จึงคงไว้ที่นี่) */
+const EMAIL_RECIPIENTS = ["dongykong.naris@gmail.com", "sirichai@heungaline.co.th"];
+function buildMailBody(payload, rows, outFile, warnings){
+  const lines = [
+    "มีการส่งข้อมูล SHORE ใหม่ผ่านระบบแบบฟอร์มสำรวจข้อมูล (Self Service Shore)",
+    "",
+    "TERMINAL      : "+payload.terminal,
+    "Vessel / Voy. : "+payload.vessel+" V."+payload.voy,
+    "Shipper name  : "+payload.shipper,
+    "POD           : "+payload.pod,
+    "Booking No.   : "+payload.booking,
+    "",
+    "จำนวนตู้ ("+payload.rows.length+" ใบ):"
+  ];
+  payload.rows.forEach((r,i)=>{
+    const extra = [];
+    if(r.commodity) extra.push("commodity="+r.commodity);
+    if(r.temp) extra.push("temp="+r.temp);
+    if(r.vent) extra.push("vent="+r.vent);
+    if(r.dgUn) extra.push("DG/UN="+r.dgUn);
+    const extraStr = extra.length ? "  "+extra.join("  ") : "";
+    lines.push("  "+(i+1)+". "+r.container+"  size="+r.size+"  status="+r.status+extraStr);
+  });
+  if(payload.remark) lines.push("", "Special Condition / ผู้ติดต่อ: "+payload.remark);
+  if(warnings && warnings.length) lines.push("", "หมายเหตุ:", ...warnings.map(w=>"  - "+w));
+  lines.push("", "ไฟล์แนบ: "+outFile);
+  return lines.join("\n");
 }
 </script>
 
@@ -157,7 +194,39 @@ function b64ToArrayBuffer(b64){
       <div class="toolbar"><button type="button" class="btn-ghost" id="btnAdd">＋ เพิ่มตู้</button></div>
     </div>
 
+    <div class="card section-title">
+      <h2>ข้อมูลเพิ่มเติม <span class="sub">Special Condition / ผู้ติดต่อ</span></h2>
+
+      <div class="field">
+        <label class="q" for="remark">Special Condition Request <span class="opt">(ถ้ามี)</span></label>
+        <textarea id="remark" rows="2" placeholder="เช่น Request container on deck"></textarea>
+      </div>
+
+      <div class="field field-2col">
+        <div>
+          <label class="q" for="contactName">ชื่อผู้ติดต่อ (Name) <span class="star">*</span></label>
+          <input type="text" id="contactName" placeholder="ชื่อ-นามสกุล" required />
+          <div class="msg-err" data-for="contactName">กรุณากรอกชื่อผู้ติดต่อ</div>
+        </div>
+        <div>
+          <label class="q" for="contactPhone">เบอร์โทร (Phone) <span class="star">*</span></label>
+          <input type="text" id="contactPhone" placeholder="0812345678" required />
+          <div class="msg-err" data-for="contactPhone">กรุณากรอกเบอร์โทร</div>
+        </div>
+      </div>
+      <div class="field">
+        <label class="q" for="contactEmail">อีเมล (Email) <span class="star">*</span></label>
+        <input type="text" id="contactEmail" placeholder="name@heungaline.co.th" required />
+        <div class="msg-err" data-for="contactEmail">กรุณากรอกอีเมลผู้ติดต่อ</div>
+      </div>
+    </div>
+
     <div class="card">
+      <label class="confirm-row">
+        <input type="checkbox" id="confirmCheck" />
+        <span>ยืนยันว่าข้อมูลที่กรอกถูกต้อง และจะนำไฟล์นี้ไปยื่นยืนยันกับท่าเรือ/เอเย่นต์ตามขั้นตอนต่อไป</span>
+      </label>
+      <div class="msg-err" data-for="confirm">กรุณากดยืนยันข้อมูลก่อนส่ง</div>
       <button type="submit" class="btn-primary" id="btnSubmit">ส่งข้อมูล</button>
       <button type="button" class="btn-text" id="btnReset" style="margin-left:8px">ล้างฟอร์ม</button>
     </div>
@@ -184,6 +253,24 @@ function b64ToArrayBuffer(b64){
       <label class="q" for="mStatus">STATUS F/E <span class="star">*</span></label>
       <select id="mStatus"><option value="" disabled selected>— เลือกสถานะ —</option></select>
       <div class="msg-err" data-for="mStatus">กรุณาเลือกสถานะ</div>
+    </div>
+    <div class="field">
+      <label class="q" for="mCommodity">Commodity <span class="opt">(ถ้ามี)</span></label>
+      <input type="text" id="mCommodity" placeholder="เช่น FROZEN SEAFOOD" />
+    </div>
+    <div class="field field-2col">
+      <div>
+        <label class="q" for="mTemp">Temperature <span class="opt">(for RF)</span></label>
+        <input type="text" id="mTemp" placeholder="เช่น -18℃" />
+      </div>
+      <div>
+        <label class="q" for="mVent">Vent % <span class="opt">(for RF)</span></label>
+        <input type="text" id="mVent" placeholder="เช่น 15%" />
+      </div>
+    </div>
+    <div class="field">
+      <label class="q" for="mDgUn">DG Class / UN Number <span class="opt">(ถ้ามี)</span></label>
+      <input type="text" id="mDgUn" placeholder="เช่น Class 9 / UN3082" />
     </div>
     <div class="actions">
       <button type="button" class="btn-ghost" id="mCancel">ยกเลิก</button>
@@ -220,12 +307,14 @@ const TERMINALS = {
   "LCMT Company LTD, ( under LCB1 Group)  A0": {
     key:"A0", tpl:"templates/A0-SHORE.xlsx", out:"A0-SHORE.xlsx", sheet:"Sheet1",
     header:{vessel:"E6", voy:"I6"},
-    table:{start:14, max:11, cols:{no:"A",container:"C",booking:"D",size:"E",type:"F",pod:"G"}}
+    table:{start:14, max:11, cols:{no:"A",container:"C",booking:"D",size:"E",type:"F",pod:"G",
+      temp:"H",vent:"I",remark:"K"}}
   },
   "ESCO (EASTERN SEA LCH CNTR TML/B3)": {
     key:"B3", tpl:"templates/B3-SHORE.xlsx", out:"B3-SHORE.xlsx", sheet:"CHORE CY",
     header:{vessel_voy:"C11", shipper:"C12"},
-    table:{start:17, max:20, cols:{no:"A",container:"B",type:"C",size:"D",pod:"E",booking:"J"}}
+    table:{start:17, max:20, cols:{no:"A",container:"B",type:"C",size:"D",pod:"E",booking:"J",
+      temp:"G",dg_flag:"H",remark:"L"}}
   },
   "B5/C3 LCIT (LAEM CHABANG INTERNATIONAL TERMINAL CO., LTD)": {
     key:"B5C3", tpl:"templates/B5C3-SHORE.xlsx", out:"B5C3-SHORE.xlsx", sheet:"Sheet1",
@@ -237,13 +326,15 @@ const TERMINALS = {
   "A2 ( Thai Laemchabang Terminal, TLT / 허치슨 )": {
     key:"A2", tpl:"templates/A2-FORM-A.xlsx", out:"A2-FORM A.xlsx", sheet:"FORM A",
     header:{vessel:"B8", voy:"I8"},
-    table:{start:12, max:13, cols:{no:"L",container:"M",size:"N",type:"O",vgm:"Q",agent:"R",pod:"S",booking:"T"}}
+    table:{start:12, max:13, cols:{no:"L",container:"M",size:"N",type:"O",vgm:"Q",agent:"R",pod:"S",booking:"T",
+      remark:"U"}}
   },
   "A3 (C1,C2) (Hutchison Laemchabang Terminal Limited, HLT)": {
     key:"A3C1C2", tpl:"templates/A3C1C2-HUTCHISON.xlsx", out:"A3C1C2-HUTCHISON.xlsx", sheet:"HPT",
     header:{},
     table:{start:10, max:19,
-      cols:{no:"A",line:"B",shipper:"C",size:"D",type:"E",container:"F",vessel:"G",voy:"H",pod:"I",booking:"K",seal:"L",status:"M",payment:"U"},
+      cols:{no:"A",line:"B",shipper:"C",size:"D",type:"E",container:"F",vessel:"G",voy:"H",pod:"I",booking:"K",seal:"L",status:"M",payment:"U",
+        commodity:"N",temp:"O",vent:"P",dg_flag:"R",un_number:"S",remark:"V"},
       rowConst:{payment:"CREDIT"}}
   }
 };
@@ -427,11 +518,14 @@ function openModal(index){
   if(editIndex >= 0){
     const c = containers[editIndex];
     $("#mSize").value=c.size; $("#mCntr").value=c.container; $("#mStatus").value=c.status;
+    $("#mCommodity").value=c.commodity||""; $("#mTemp").value=c.temp||"";
+    $("#mVent").value=c.vent||""; $("#mDgUn").value=c.dgUn||"";
     $("#modalTitle").textContent = "แก้ไขข้อมูลตู้ #" + (editIndex+1);
     $("#mConfirmMore").style.display = "none";
     $("#mConfirm").textContent = "บันทึก";
   }else{
     $("#mSize").value=""; $("#mCntr").value=""; $("#mStatus").value="";
+    $("#mCommodity").value=""; $("#mTemp").value=""; $("#mVent").value=""; $("#mDgUn").value="";
     $("#modalTitle").textContent = "เพิ่มข้อมูลตู้";
     $("#mConfirmMore").style.display = "";
     $("#mConfirm").textContent = "＋ เพิ่มตู้";
@@ -448,7 +542,14 @@ function readModal(){
   setErr($("#mSize"), !size);
   setErr($("#mStatus"), !status);
   setErr($("#mCntr"), cnBad);
-  return (!size || !status || cnBad) ? null : {size, container, status};
+  if(!size || !status || cnBad) return null;
+  return {
+    size, container, status,
+    commodity: $("#mCommodity").value.trim(),
+    temp: $("#mTemp").value.trim(),
+    vent: $("#mVent").value.trim(),
+    dgUn: $("#mDgUn").value.trim()
+  };
 }
 function commitModal(keepOpen){
   const data = readModal();
@@ -457,6 +558,8 @@ function commitModal(keepOpen){
   else containers.push(data);
   renderContainers();
   if(keepOpen && editIndex < 0){
+    // เพิ่มแล้วเพิ่มต่อ: ล้างเฉพาะเลขตู้ ส่วน size/status/commodity/temp/vent/DG คงไว้
+    // (ตู้ชุดเดียวกันมักมีข้อมูลพวกนี้เหมือนกัน กรอกครั้งเดียวพอ)
     $("#mCntr").value = ""; clearErr($("#modalBg")); $("#mCntr").focus();
   }else closeModal();
 }
@@ -469,11 +572,14 @@ function renderContainers(){
     const cls = st === "FULL" ? "f" : (st === "EMPTY" ? "e" : "");
     const row = document.createElement("div");
     row.className = "cntr-item";
+    const extra = [];
+    if(c.dgUn) extra.push('<span class="badge e">DG</span>');
+    if(c.temp) extra.push('<span class="badge">'+escapeHtml(c.temp)+'</span>');
     row.innerHTML =
       '<div class="idx">'+(i+1)+'</div>'+
       '<div class="info"><div class="cn">'+escapeHtml(c.container)+'</div>'+
       '<div class="meta"><span class="badge">'+escapeHtml(c.size)+'</span>'+
-      '<span class="badge '+cls+'">'+escapeHtml(st)+'</span></div></div>'+
+      '<span class="badge '+cls+'">'+escapeHtml(st)+'</span>'+extra.join("")+'</div></div>'+
       '<button type="button" class="btn-text" data-edit="'+i+'">แก้ไข</button>'+
       '<button type="button" class="x" data-del="'+i+'" title="ลบ">&times;</button>';
     list.appendChild(row);
@@ -499,9 +605,11 @@ function showErr(name){ const b=$('.msg-err[data-for="'+name+'"]'); if(b) b.clas
 function buildRows(p){
   const vessel = p.vessel.trim(), voy = p.voy.trim();
   const vv = (vessel || voy) ? (vessel + " V." + voy).trim() : "";
+  const remark = (p.remark || "").trim();
   return p.rows.map(it=>{
     const raw = (it.size || "").trim();
     const [sn, st] = splitSize(raw);
+    const dgUn = (it.dgUn || "").trim();
     return {
       container:(it.container||"").trim().toUpperCase(),
       size: sn, type: st,
@@ -510,7 +618,11 @@ function buildRows(p){
       vessel, voy, vessel_voy: vv,
       shipper:p.shipper.trim(), pod:p.pod.trim(), booking:p.booking.trim(),
       terminal:p.terminal, agent:AGENT_NAME, line:LINE_CODE,
-      seal:(it.seal||"").trim(), vgm:(it.vgm||"").trim()
+      seal:(it.seal||"").trim(), vgm:(it.vgm||"").trim(),
+      commodity:(it.commodity||"").trim(),
+      temp:(it.temp||"").trim(), vent:(it.vent||"").trim(),
+      un_number: dgUn, dg_flag: dgUn ? "Y" : "",
+      remark: remark
     };
   });
 }
@@ -584,12 +696,13 @@ async function fillTemplate(conf, rows){
 /* ================= validate + submit ================= */
 function validateForm(){
   let ok = true;
-  ["terminal","vessel","voy","shipper","pod","booking"].forEach(id=>{
+  ["terminal","vessel","voy","shipper","pod","booking","contactName","contactPhone","contactEmail"].forEach(id=>{
     const el = $("#"+id);
     const bad = !el.value.trim();
     setErr(el, bad); if(bad) ok = false;
   });
   if(containers.length === 0){ showErr("rows"); ok = false; }
+  if(!$("#confirmCheck").checked){ showErr("confirm"); ok = false; } else hideErr("confirm");
   return ok;
 }
 
@@ -658,37 +771,9 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
   }
 }
 
-/* หน้านี้เป็น static site (GitHub Pages) ไม่มีเซิร์ฟเวอร์ จึงแนบไฟล์แล้วกดส่งอีเมลให้อัตโนมัติ
-   100% ไม่ได้ (ต้องมี backend หรือบริการส่งอีเมลแบบเสียเงิน) — ทำได้ดีที่สุดคือเปิดฉบับร่างอีเมล
-   ให้พร้อมผู้รับ/หัวเรื่อง/เนื้อหา แล้วให้ผู้ใช้แนบไฟล์ที่ดาวน์โหลดไว้เอง ก่อนกดส่งในโปรแกรมเมลของตน */
-const EMAIL_RECIPIENTS = ["dongykong.naris@gmail.com", "sirichai@heungaline.co.th"];
-
-function buildMailBody(payload, rows, outFile, warnings){
-  const lines = [
-    "มีการส่งข้อมูล SHORE ใหม่ผ่านระบบแบบฟอร์มสำรวจข้อมูล (Self Service Shore)",
-    "",
-    "*** อย่าลืมแนบไฟล์ "+outFile+" ที่ดาวน์โหลดไว้ก่อนกดส่ง ***",
-    "",
-    "TERMINAL      : "+payload.terminal,
-    "Vessel / Voy. : "+payload.vessel+" V."+payload.voy,
-    "Shipper name  : "+payload.shipper,
-    "POD           : "+payload.pod,
-    "Booking No.   : "+payload.booking,
-    "",
-    "จำนวนตู้ ("+payload.rows.length+" ใบ):"
-  ];
-  payload.rows.forEach((r,i)=>lines.push("  "+(i+1)+". "+r.container+"  size="+r.size+"  status="+r.status));
-  if(warnings && warnings.length) lines.push("", "หมายเหตุ:", ...warnings.map(w=>"  - "+w));
-  return lines.join("\n");
-}
-
-function openMailDraft(payload, rows, outFile, warnings){
-  const subject = "[SHORE] "+TERMINALS[payload.terminal].key+" - "+payload.vessel+" V."+payload.voy+" - Booking "+payload.booking;
-  const body = buildMailBody(payload, rows, outFile, warnings);
-  const url = "mailto:"+EMAIL_RECIPIENTS.join(",")+
-    "?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body);
-  window.location.href = url;
-}
+/* หน้านี้เป็น static site (GitHub Pages) ไม่มีเซิร์ฟเวอร์ จึงส่งอีเมลแนบไฟล์อัตโนมัติไม่ได้เลย
+   (ต้องมี backend หรือบริการส่งอีเมลแบบเสียเงิน) - เลยตัดขั้นตอนอีเมลออก ให้ "บันทึกไฟล์" ตรง ๆ แทน
+   ผู้ใช้นำไฟล์ที่ได้ไปส่งต่อ/แนบอีเมลเอง หรือใช้เวอร์ชัน Python (python run.py) ถ้าต้องการส่งอัตโนมัติ */
 
 async function submitForm(ev){
   ev.preventDefault();
@@ -701,11 +786,17 @@ async function submitForm(ev){
   const conf = TERMINALS[terminal];
   if(!conf){ showResultError("ไม่รู้จัก TERMINAL: " + terminal); return; }
 
+  const contactLine = "Contact: "+$("#contactName").value.trim()+" "+$("#contactPhone").value.trim()+
+    ($("#contactEmail").value.trim() ? " "+$("#contactEmail").value.trim() : "");
+  const specialCond = $("#remark").value.trim();
+  const remark = [specialCond, contactLine].filter(Boolean).join(" | ");
+
   const payload = {
     terminal,
     vessel:$("#vessel").value, voy:$("#voy").value, shipper:$("#shipper").value,
-    pod:$("#pod").value, booking:$("#booking").value,
-    rows: containers.map(c=>({size:c.size, container:c.container, status:c.status}))
+    pod:$("#pod").value, booking:$("#booking").value, remark,
+    rows: containers.map(c=>({size:c.size, container:c.container, status:c.status,
+      commodity:c.commodity, temp:c.temp, vent:c.vent, dgUn:c.dgUn}))
   };
 
   const btn = $("#btnSubmit");
@@ -725,7 +816,7 @@ async function submitForm(ev){
       return;
     }
 
-    // Gmail ส่งไม่สำเร็จ (หรือไม่ได้รันใน Artifact ที่มี capability นี้) -> สำรอง: บันทึกไฟล์ + เปิดร่างอีเมล
+    // Gmail ส่งไม่สำเร็จ (หรือไม่ได้รันใน Artifact ที่มี capability นี้) -> สำรอง: บันทึกไฟล์
     btn.textContent = "กำลังบันทึกไฟล์…";
     let saveStatus;
     try{
@@ -739,10 +830,12 @@ async function submitForm(ev){
     }
     showResult(conf.out, written, warnings, saveStatus, gmail.reason);
     window.scrollTo({top:document.body.scrollHeight, behavior:"smooth"});
-    setTimeout(()=>openMailDraft(payload, rows, conf.out, warnings), 600);
   }catch(e){
     console.error(e);
-    showResultError(e.message || String(e));
+    let msg = e.message || String(e);
+    if(/Failed to fetch|NetworkError|HTTP 0/i.test(msg))
+      msg = "โหลดไฟล์แม่แบบไม่ได้ — ต้องเปิดหน้านี้ผ่าน http/https (GitHub Pages หรือ `python -m http.server`) ไม่ใช่ดับเบิลคลิกไฟล์";
+    showResultError(msg);
   }finally{
     btn.disabled = false; btn.textContent = "ส่งข้อมูล";
   }
@@ -767,16 +860,15 @@ function showResult(outFile, rows, warnings, saveStatus, gmailReason){
     ? 'ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกส่งไปยังปลายทางที่คุณเลือกแล้ว'
     : 'ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกบันทึกไว้แล้ว';
   const gmailLine = gmailReason
-    ? '<li>ส่งผ่าน Gmail อัตโนมัติไม่สำเร็จ: '+escapeHtml(gmailReason)+'</li>'
+    ? '<li>ส่งผ่าน Gmail อัตโนมัติไม่สำเร็จ: '+escapeHtml(gmailReason)+' — ผู้รับที่ตั้งใจส่ง: '+toList+'</li>'
     : '';
   $("#resultBox").innerHTML =
     '<div class="result">'+
-      '<h2>✓ สร้างไฟล์สำเร็จ — กำลังเปิดโปรแกรมอีเมลให้</h2>'+
+      '<h2>✓ บันทึกไฟล์สำเร็จ</h2>'+
       '<div>'+savedLine+'</div>'+
       '<div>จำนวนตู้: '+rows+' ใบ</div>'+ warn +
       '<ul>'+gmailLine+
-      '<li>โปรแกรมอีเมลของคุณจะเปิดขึ้น พร้อมผู้รับ/หัวเรื่อง/เนื้อหาให้แล้ว (ถึง '+toList+')</li>'+
-      '<li><b>กรุณาแนบไฟล์ '+escapeHtml(outFile)+' ที่เพิ่งบันทึกไว้</b> แล้วกด Send ในโปรแกรมอีเมลของคุณ</li>'+
+      '<li>นำไฟล์นี้ไปส่งต่อ/แนบอีเมลให้ท่าเรือหรือเอเย่นต์ตามขั้นตอนของท่านได้เลย</li>'+
       '</ul>'+
     '</div>';
 }
@@ -817,9 +909,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
     else if(ed !== null){ openModal(+ed); }
   });
 
-  $$("#form input, #form select").forEach(el=>{
+  $$("#form input, #form select, #form textarea").forEach(el=>{
     el.addEventListener("input", ()=>setErr(el,false));
     el.addEventListener("change", ()=>setErr(el,false));
   });
+  $("#confirmCheck").addEventListener("change", ()=>hideErr("confirm"));
 });
 </script>

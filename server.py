@@ -52,6 +52,7 @@ def _build_mail(payload: dict, result: dict):
     shipper = payload.get("shipper", "")
     pod = payload.get("pod", "")
     booking = payload.get("booking", "")
+    remark = payload.get("remark", "")
     rows = payload.get("rows", [])
 
     subject = f"[SHORE] {result.get('terminal_key','')} - {vessel} V.{voy} - Booking {booking}"
@@ -68,9 +69,21 @@ def _build_mail(payload: dict, result: dict):
         f"จำนวนตู้ ({len(rows)} ใบ):",
     ]
     for i, r in enumerate(rows, 1):
+        extra = []
+        if r.get("commodity"):
+            extra.append(f"commodity={r['commodity']}")
+        if r.get("temp"):
+            extra.append(f"temp={r['temp']}")
+        if r.get("vent"):
+            extra.append(f"vent={r['vent']}")
+        if r.get("dgUn"):
+            extra.append(f"DG/UN={r['dgUn']}")
+        extra_str = ("  " + "  ".join(extra)) if extra else ""
         lines.append(
-            f"  {i}. {r.get('container','')}  size={r.get('size','')}  status={r.get('status','')}"
+            f"  {i}. {r.get('container','')}  size={r.get('size','')}  status={r.get('status','')}{extra_str}"
         )
+    if remark:
+        lines += ["", f"Special Condition / ผู้ติดต่อ: {remark}"]
     if result.get("warnings"):
         lines += ["", "หมายเหตุ:"] + [f"  - {w}" for w in result["warnings"]]
     lines += ["", f"ไฟล์แนบ: {result.get('out_file','')}", "", "-- ส่งอัตโนมัติจากระบบ Self Service Shore --"]

@@ -48,6 +48,7 @@ TERMINALS: Dict[str, Dict] = {
             "cols": {
                 "no": "A", "container": "C", "booking": "D",
                 "size": "E", "type": "F", "pod": "G",
+                "temp": "H", "vent": "I", "remark": "K",
             },
         },
     },
@@ -65,6 +66,7 @@ TERMINALS: Dict[str, Dict] = {
             "cols": {
                 "no": "A", "container": "B", "type": "C", "size": "D",
                 "pod": "E", "booking": "J",
+                "temp": "G", "dg_flag": "H", "remark": "L",
             },
         },
     },
@@ -100,6 +102,7 @@ TERMINALS: Dict[str, Dict] = {
             "cols": {
                 "no": "L", "container": "M", "size": "N", "type": "O",
                 "vgm": "Q", "agent": "R", "pod": "S", "booking": "T",
+                "remark": "U",
             },
         },
     },
@@ -117,6 +120,8 @@ TERMINALS: Dict[str, Dict] = {
                 "no": "A", "line": "B", "shipper": "C", "size": "D", "type": "E",
                 "container": "F", "vessel": "G", "voy": "H", "pod": "I",
                 "booking": "K", "seal": "L", "status": "M", "payment": "U",
+                "commodity": "N", "temp": "O", "vent": "P",
+                "dg_flag": "R", "un_number": "S", "remark": "V",
             },
             "row_constants": {"payment": "CREDIT"},
         },
@@ -175,11 +180,13 @@ def build_record_rows(payload: Dict) -> List[Dict]:
     pod = (payload.get("pod") or "").strip()
     booking = (payload.get("booking") or "").strip()
     terminal = (payload.get("terminal") or "").strip()
+    remark = (payload.get("remark") or "").strip()
 
     rows: List[Dict] = []
     for item in payload.get("rows", []):
         raw_size = (item.get("size") or "").strip()
         size_num, size_type = split_size(raw_size)
+        dg_un = (item.get("dgUn") or "").strip()
         rows.append({
             "container": (item.get("container") or "").strip().upper(),
             "size": size_num,
@@ -198,6 +205,12 @@ def build_record_rows(payload: Dict) -> List[Dict]:
             "line": LINE_CODE,
             "seal": (item.get("seal") or "").strip(),
             "vgm": (item.get("vgm") or "").strip(),
+            "commodity": (item.get("commodity") or "").strip(),
+            "temp": (item.get("temp") or "").strip(),
+            "vent": (item.get("vent") or "").strip(),
+            "un_number": dg_un,
+            "dg_flag": "Y" if dg_un else "",
+            "remark": remark,
         })
     return rows
 

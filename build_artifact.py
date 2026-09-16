@@ -75,6 +75,36 @@ def main():
         "  for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);\n"
         "  return bytes.buffer;\n"
         "}\n"
+        "\n"
+        "/* ผู้รับอีเมล + เนื้อหาอีเมล สำหรับการส่งผ่าน Gmail (เวอร์ชัน docs/ แบบ static ตัดออกแล้ว\n"
+        "   เพราะ GitHub Pages ส่งอีเมลตรงไม่ได้ แต่ Artifact เชื่อม Gmail ของผู้ใช้ได้จริง จึงคงไว้ที่นี่) */\n"
+        'const EMAIL_RECIPIENTS = ["dongykong.naris@gmail.com", "sirichai@heungaline.co.th"];\n'
+        "function buildMailBody(payload, rows, outFile, warnings){\n"
+        "  const lines = [\n"
+        '    "มีการส่งข้อมูล SHORE ใหม่ผ่านระบบแบบฟอร์มสำรวจข้อมูล (Self Service Shore)",\n'
+        '    "",\n'
+        '    "TERMINAL      : "+payload.terminal,\n'
+        '    "Vessel / Voy. : "+payload.vessel+" V."+payload.voy,\n'
+        '    "Shipper name  : "+payload.shipper,\n'
+        '    "POD           : "+payload.pod,\n'
+        '    "Booking No.   : "+payload.booking,\n'
+        '    "",\n'
+        '    "จำนวนตู้ ("+payload.rows.length+" ใบ):"\n'
+        "  ];\n"
+        "  payload.rows.forEach((r,i)=>{\n"
+        "    const extra = [];\n"
+        '    if(r.commodity) extra.push("commodity="+r.commodity);\n'
+        '    if(r.temp) extra.push("temp="+r.temp);\n'
+        '    if(r.vent) extra.push("vent="+r.vent);\n'
+        '    if(r.dgUn) extra.push("DG/UN="+r.dgUn);\n'
+        '    const extraStr = extra.length ? "  "+extra.join("  ") : "";\n'
+        '    lines.push("  "+(i+1)+". "+r.container+"  size="+r.size+"  status="+r.status+extraStr);\n'
+        "  });\n"
+        '  if(payload.remark) lines.push("", "Special Condition / ผู้ติดต่อ: "+payload.remark);\n'
+        '  if(warnings && warnings.length) lines.push("", "หมายเหตุ:", ...warnings.map(w=>"  - "+w));\n'
+        '  lines.push("", "ไฟล์แนบ: "+outFile);\n'
+        "  return lines.join(\"\\n\");\n"
+        "}\n"
         "</script>\n"
     )
 
@@ -213,7 +243,7 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
     assert old_trigger in body_inner, "หา triggerDownload เดิมไม่เจอ"
     body_inner = body_inner.replace(old_trigger, new_trigger)
 
-    # ---- 7) submitForm: เรียก saveFile แทน triggerDownload, จัดการ "declined" ----
+    # ---- 7) submitForm: ลองส่งผ่าน Gmail ก่อน ถ้าไม่สำเร็จค่อย saveFile สำรอง ----
     old_submit = '''  const btn = $("#btnSubmit");
   btn.disabled = true; btn.textContent = "กำลังสร้างไฟล์…";
   try{
@@ -222,7 +252,6 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
     triggerDownload(buf, conf.out);
     showResult(conf.out, written, warnings);
     window.scrollTo({top:document.body.scrollHeight, behavior:"smooth"});
-    setTimeout(()=>openMailDraft(payload, rows, conf.out, warnings), 600);
   }catch(e){
     console.error(e);
     let msg = e.message || String(e);
@@ -250,7 +279,7 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
       return;
     }
 
-    // Gmail ส่งไม่สำเร็จ (หรือไม่ได้รันใน Artifact ที่มี capability นี้) -> สำรอง: บันทึกไฟล์ + เปิดร่างอีเมล
+    // Gmail ส่งไม่สำเร็จ (หรือไม่ได้รันใน Artifact ที่มี capability นี้) -> สำรอง: บันทึกไฟล์
     btn.textContent = "กำลังบันทึกไฟล์…";
     let saveStatus;
     try{
@@ -264,10 +293,12 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
     }
     showResult(conf.out, written, warnings, saveStatus, gmail.reason);
     window.scrollTo({top:document.body.scrollHeight, behavior:"smooth"});
-    setTimeout(()=>openMailDraft(payload, rows, conf.out, warnings), 600);
   }catch(e){
     console.error(e);
-    showResultError(e.message || String(e));
+    let msg = e.message || String(e);
+    if(/Failed to fetch|NetworkError|HTTP 0/i.test(msg))
+      msg = "โหลดไฟล์แม่แบบไม่ได้ — ต้องเปิดหน้านี้ผ่าน http/https (GitHub Pages หรือ `python -m http.server`) ไม่ใช่ดับเบิลคลิกไฟล์";
+    showResultError(msg);
   }finally{
     btn.disabled = false; btn.textContent = "ส่งข้อมูล";
   }
@@ -275,20 +306,18 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
     assert old_submit in body_inner, "หา submitForm เดิมไม่เจอ"
     body_inner = body_inner.replace(old_submit, new_submit)
 
-    # ---- 8) showResult: ข้อความให้ตรงกับ "บันทึกไฟล์" แทน "ดาวน์โหลดอัตโนมัติ" ----
+    # ---- 8) showResult: เพิ่ม showResultGmailSent + ปรับ showResult ให้ตรงกับ "บันทึกไฟล์" สำรอง ----
     old_result = '''function showResult(outFile, rows, warnings){
   const warn = (warnings && warnings.length)
     ? '<ul>'+warnings.map(w=>'<li>'+escapeHtml(w)+'</li>').join("")+'</ul>' : "";
-  const toList = EMAIL_RECIPIENTS.map(escapeHtml).join(", ");
   $("#resultBox").innerHTML =
     '<div class="result">'+
-      '<h2>✓ สร้างไฟล์สำเร็จ — กำลังเปิดโปรแกรมอีเมลให้</h2>'+
-      '<div>ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกดาวน์โหลดไว้แล้ว</div>'+
+      '<h2>✓ บันทึกไฟล์สำเร็จ</h2>'+
+      '<div>ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกดาวน์โหลดไว้ในเครื่องแล้ว</div>'+
       '<div>จำนวนตู้: '+rows+' ใบ</div>'+ warn +
-      '<ul><li>โปรแกรมอีเมลของคุณจะเปิดขึ้น พร้อมผู้รับ/หัวเรื่อง/เนื้อหาให้แล้ว (ถึง '+toList+')</li>'+
-      '<li><b>กรุณาแนบไฟล์ '+escapeHtml(outFile)+' ที่เพิ่งดาวน์โหลด</b> แล้วกด Send ในโปรแกรมอีเมลของคุณ</li>'+
-      '<li>เว็บเวอร์ชันนี้ (GitHub Pages) ไม่มีเซิร์ฟเวอร์ จึงแนบไฟล์และส่งให้อัตโนมัติ 100% ไม่ได้ — '+
-      'ถ้าต้องการให้ส่งอัตโนมัติจริงไม่ต้องแนบเอง ใช้เวอร์ชัน Python (<code>python run.py</code>)</li></ul>'+
+      '<div style="margin-top:10px;color:var(--muted);font-size:13px">'+
+      'นำไฟล์นี้ไปส่งต่อ/แนบอีเมลให้ท่าเรือหรือเอเย่นต์ตามขั้นตอนของท่านได้เลย'+
+      '</div>'+
     '</div>';
 }'''
     new_result = '''function showResultGmailSent(outFile, rows, warnings){
@@ -310,16 +339,15 @@ function showResult(outFile, rows, warnings, saveStatus, gmailReason){
     ? 'ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกส่งไปยังปลายทางที่คุณเลือกแล้ว'
     : 'ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกบันทึกไว้แล้ว';
   const gmailLine = gmailReason
-    ? '<li>ส่งผ่าน Gmail อัตโนมัติไม่สำเร็จ: '+escapeHtml(gmailReason)+'</li>'
+    ? '<li>ส่งผ่าน Gmail อัตโนมัติไม่สำเร็จ: '+escapeHtml(gmailReason)+' — ผู้รับที่ตั้งใจส่ง: '+toList+'</li>'
     : '';
   $("#resultBox").innerHTML =
     '<div class="result">'+
-      '<h2>✓ สร้างไฟล์สำเร็จ — กำลังเปิดโปรแกรมอีเมลให้</h2>'+
+      '<h2>✓ บันทึกไฟล์สำเร็จ</h2>'+
       '<div>'+savedLine+'</div>'+
       '<div>จำนวนตู้: '+rows+' ใบ</div>'+ warn +
       '<ul>'+gmailLine+
-      '<li>โปรแกรมอีเมลของคุณจะเปิดขึ้น พร้อมผู้รับ/หัวเรื่อง/เนื้อหาให้แล้ว (ถึง '+toList+')</li>'+
-      '<li><b>กรุณาแนบไฟล์ '+escapeHtml(outFile)+' ที่เพิ่งบันทึกไว้</b> แล้วกด Send ในโปรแกรมอีเมลของคุณ</li>'+
+      '<li>นำไฟล์นี้ไปส่งต่อ/แนบอีเมลให้ท่าเรือหรือเอเย่นต์ตามขั้นตอนของท่านได้เลย</li>'+
       '</ul>'+
     '</div>';
 }'''
