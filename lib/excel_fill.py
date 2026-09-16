@@ -33,11 +33,12 @@ AGENT_NAME = "HEUNG-A"
 #   ฟิลด์ที่ใช้ได้ใน cols:
 #     no, container, booking, size, type, size_combo, pod, status,
 #     line, shipper, seal, vessel, voy, vessel_voy, agent, vgm, terminal,
-#     commodity, temp, humidity, vent, dg_flag, un_number, remark
+#     commodity, temp, humidity, vent, dg_flag, un_number, remark,
+#     over_height, over_width
 # ---------------------------------------------------------------------------
 # ท่าที่ยังไม่มีช่องกรอก "ชื่อบริษัท/Shipper" แยกในแม่แบบ (หรืออยากให้ย้ำอีกที)
 # จึงต้องแนบชื่อบริษัทไว้ในช่อง REMARK ของแต่ละตู้ด้วย
-REMARK_INCLUDE_COMPANY_KEYS = {"A0", "B3"}
+REMARK_INCLUDE_COMPANY_KEYS = {"A0", "B3", "A2"}
 
 TERMINALS: Dict[str, Dict] = {
     # ---------- A0 : LCMT / LCB1 ----------
@@ -105,6 +106,8 @@ TERMINALS: Dict[str, Dict] = {
         },
     },
     # ---------- A2 : Thai Laemchabang Terminal (TLT) ----------
+    # เขียนลงตาราง "SHUT OUT CONTAINER" (คอลัมน์ A-J) ไม่ใช่ "ADDITIONAL CONTAINER" (คอลัมน์ L-U)
+    # ที่อยู่ข้าง ๆ กัน - สองตารางนี้มีโครงสร้างคอลัมน์เหมือนกันทุกประการ
     "A2 ( Thai Laemchabang Terminal, TLT / 허치슨 )": {
         "key": "A2",
         "src": "input/A2-FORM  A.xlsx",
@@ -115,9 +118,9 @@ TERMINALS: Dict[str, Dict] = {
             "start_row": 12,
             "max_rows": 13,
             "cols": {
-                "no": "L", "container": "M", "size": "N", "type": "O",
-                "vgm": "Q", "agent": "R", "pod": "S", "booking": "T",
-                "remark": "U",
+                "no": "A", "container": "B", "size": "C", "type": "D",
+                "vgm": "F", "agent": "G", "pod": "H", "booking": "I",
+                "remark": "J",
             },
         },
     },
@@ -205,17 +208,29 @@ def build_record_rows(payload: Dict) -> List[Dict]:
         contact_line += " " + contact_email
 
     terminal_key = (TERMINALS.get(terminal) or {}).get("key")
-    remark_parts = [p for p in (special_cond,) if p]
+    base_remark_parts = [p for p in (special_cond,) if p]
     if terminal_key in REMARK_INCLUDE_COMPANY_KEYS and shipper:
-        remark_parts.append(shipper)
-    remark_parts.append(contact_line)
-    remark = "\n".join(remark_parts)
+        base_remark_parts.append(shipper)
 
     rows: List[Dict] = []
     for item in payload.get("rows", []):
         raw_size = (item.get("size") or "").strip()
         size_num, size_type = split_size(raw_size)
         dg_un = (item.get("dgUn") or "").strip()
+        over_height = (item.get("overHeight") or "").strip()
+        over_width = (item.get("overWidth") or "").strip()
+
+        remark_parts = list(base_remark_parts)
+        oversize_bits = []
+        if over_height:
+            oversize_bits.append(f"Over Height: {over_height}")
+        if over_width:
+            oversize_bits.append(f"Over Width: {over_width}")
+        if oversize_bits:
+            remark_parts.append(", ".join(oversize_bits))
+        remark_parts.append(contact_line)
+        remark = "\n".join(remark_parts)
+
         rows.append({
             "container": (item.get("container") or "").strip().upper(),
             "size": size_num,
@@ -238,6 +253,8 @@ def build_record_rows(payload: Dict) -> List[Dict]:
             "temp": (item.get("temp") or "").strip(),
             "humidity": (item.get("humidity") or "").strip(),
             "vent": (item.get("vent") or "").strip(),
+            "over_height": over_height,
+            "over_width": over_width,
             "un_number": dg_un,
             "dg_flag": "Y" if dg_un else "",
             "remark": remark,

@@ -98,8 +98,11 @@ def main():
         "    const extra = [];\n"
         '    if(r.commodity) extra.push("commodity="+r.commodity);\n'
         '    if(r.temp) extra.push("temp="+r.temp);\n'
+        '    if(r.humidity) extra.push("humidity="+r.humidity);\n'
         '    if(r.vent) extra.push("vent="+r.vent);\n'
         '    if(r.dgUn) extra.push("DG/UN="+r.dgUn);\n'
+        '    if(r.overHeight) extra.push("overHeight="+r.overHeight);\n'
+        '    if(r.overWidth) extra.push("overWidth="+r.overWidth);\n'
         '    const extraStr = extra.length ? "  "+extra.join("  ") : "";\n'
         '    lines.push("  "+(i+1)+". "+r.container+"  size="+r.size+"  status="+r.status+extraStr);\n'
         "  });\n"

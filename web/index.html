@@ -308,6 +308,17 @@
       <div class="msg-err" data-for="mStatus">กรุณาเลือกสถานะ</div>
     </div>
 
+    <div id="oversizeFields" class="field field-2col" style="display:none">
+      <div>
+        <label class="q" for="mOverHeight">Over Height <span class="opt">(ถ้ามี)</span></label>
+        <input type="text" id="mOverHeight" placeholder="เช่น 2.9 m" />
+      </div>
+      <div>
+        <label class="q" for="mOverWidth">Over Width <span class="opt">(ถ้ามี)</span></label>
+        <input type="text" id="mOverWidth" placeholder="เช่น 2.6 m" />
+      </div>
+    </div>
+
     <div class="field">
       <label class="q" for="mCommodity">Commodity <span class="opt">(ถ้ามี)</span></label>
       <input type="text" id="mCommodity" placeholder="เช่น FROZEN SEAFOOD" />
@@ -407,6 +418,14 @@ function fillSelect(sel, items, placeholder){
 }
 
 /* ---------- โมดัล ---------- */
+// SIZE ประเภท Open Top (UT) / Flat Rack (FR) มักบรรทุกสินค้าล้นตู้ จึงต้องถาม Over Height/Width เพิ่ม
+function isOversizeType(sizeVal){
+  const v = (sizeVal || "").trim().toUpperCase();
+  return v.endsWith("UT") || v.endsWith("FR");
+}
+function updateOversizeVisibility(){
+  $("#oversizeFields").style.display = isOversizeType($("#mSize").value) ? "" : "none";
+}
 function openModal(index){
   editIndex = (typeof index === "number") ? index : -1;
   const m = $("#modalBg");
@@ -419,16 +438,19 @@ function openModal(index){
     $("#mCommodity").value = c.commodity||""; $("#mTemp").value = c.temp||"";
     $("#mHumidity").value = c.humidity||"";
     $("#mVent").value = c.vent||""; $("#mDgUn").value = c.dgUn||"";
+    $("#mOverHeight").value = c.overHeight||""; $("#mOverWidth").value = c.overWidth||"";
     $("#modalTitle").textContent = "แก้ไขข้อมูลตู้ #" + (editIndex+1);
     $("#mConfirmMore").style.display = "none";
     $("#mConfirm").textContent = "บันทึก";
   }else{
     $("#mSize").value = ""; $("#mCntr").value = ""; $("#mStatus").value = "";
     $("#mCommodity").value = ""; $("#mTemp").value = ""; $("#mHumidity").value = ""; $("#mVent").value = ""; $("#mDgUn").value = "";
+    $("#mOverHeight").value = ""; $("#mOverWidth").value = "";
     $("#modalTitle").textContent = "เพิ่มข้อมูลตู้";
     $("#mConfirmMore").style.display = "";
     $("#mConfirm").textContent = "＋ เพิ่มตู้";
   }
+  updateOversizeVisibility();
   m.classList.add("show");
   setTimeout(()=>$("#mSize").focus(), 50);
 }
@@ -450,7 +472,9 @@ function readModal(){
     temp: $("#mTemp").value.trim(),
     humidity: $("#mHumidity").value.trim(),
     vent: $("#mVent").value.trim(),
-    dgUn: $("#mDgUn").value.trim()
+    dgUn: $("#mDgUn").value.trim(),
+    overHeight: isOversizeType(size) ? $("#mOverHeight").value.trim() : "",
+    overWidth: isOversizeType(size) ? $("#mOverWidth").value.trim() : ""
   } : null;
 }
 
@@ -485,6 +509,7 @@ function renderContainers(){
     if(c.dgUn) extra.push('<span class="badge e">DG</span>');
     if(c.temp) extra.push('<span class="badge">'+escapeHtml(c.temp)+'</span>');
     if(c.humidity) extra.push('<span class="badge">'+escapeHtml(c.humidity)+'</span>');
+    if(c.overHeight || c.overWidth) extra.push('<span class="badge e">OS</span>');
     row.innerHTML =
       '<div class="idx">'+(i+1)+'</div>'+
       '<div class="info">'+
@@ -559,7 +584,8 @@ async function submitForm(ev){
     contactPhone: $("#contactPhone").value.trim(),
     contactEmail: $("#contactEmail").value.trim(),
     rows:     containers.map(c => ({size:c.size, container:c.container, status:c.status,
-      commodity:c.commodity, temp:c.temp, humidity:c.humidity, vent:c.vent, dgUn:c.dgUn}))
+      commodity:c.commodity, temp:c.temp, humidity:c.humidity, vent:c.vent, dgUn:c.dgUn,
+      overHeight:c.overHeight, overWidth:c.overWidth}))
   };
 
   const btn = $("#btnSubmit");
@@ -626,6 +652,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#mConfirm").addEventListener("click", ()=>commitModal(false));
   $("#mConfirmMore").addEventListener("click", ()=>commitModal(true));
   $("#modalBg").addEventListener("click", (e)=>{ if(e.target === $("#modalBg")) closeModal(); });
+  $("#mSize").addEventListener("change", updateOversizeVisibility);
   document.addEventListener("keydown", (e)=>{ if(e.key === "Escape") closeModal(); });
 
   $("#cntrList").addEventListener("click", (e)=>{

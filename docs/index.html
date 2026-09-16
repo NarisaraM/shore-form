@@ -215,6 +215,16 @@
       <select id="mStatus"><option value="" disabled selected>— เลือกสถานะ —</option></select>
       <div class="msg-err" data-for="mStatus">กรุณาเลือกสถานะ</div>
     </div>
+    <div id="oversizeFields" class="field field-2col" style="display:none">
+      <div>
+        <label class="q" for="mOverHeight">Over Height <span class="opt">(ถ้ามี)</span></label>
+        <input type="text" id="mOverHeight" placeholder="เช่น 2.9 m" />
+      </div>
+      <div>
+        <label class="q" for="mOverWidth">Over Width <span class="opt">(ถ้ามี)</span></label>
+        <input type="text" id="mOverWidth" placeholder="เช่น 2.6 m" />
+      </div>
+    </div>
     <div class="field">
       <label class="q" for="mCommodity">Commodity <span class="opt">(ถ้ามี)</span></label>
       <input type="text" id="mCommodity" placeholder="เช่น FROZEN SEAFOOD" />
@@ -300,8 +310,8 @@ const TERMINALS = {
   "A2 ( Thai Laemchabang Terminal, TLT / 허치슨 )": {
     key:"A2", tpl:"templates/A2-FORM-A.xlsx", out:"A2-FORM A.xlsx", sheet:"FORM A",
     header:{vessel:"B8", voy:"I8"},
-    table:{start:12, max:13, cols:{no:"L",container:"M",size:"N",type:"O",vgm:"Q",agent:"R",pod:"S",booking:"T",
-      remark:"U"}}
+    table:{start:12, max:13, cols:{no:"A",container:"B",size:"C",type:"D",vgm:"F",agent:"G",pod:"H",booking:"I",
+      remark:"J"}}
   },
   "A3 (C1,C2) (Hutchison Laemchabang Terminal Limited, HLT)": {
     key:"A3C1C2", tpl:"templates/A3C1C2-HUTCHISON.xlsx", out:"A3C1C2-HUTCHISON.xlsx", sheet:"HPT",
@@ -502,6 +512,14 @@ function fillSelect(sel, items, placeholder){
 }
 
 /* ================= โมดัลเพิ่มตู้ ================= */
+// SIZE ประเภท Open Top (UT) / Flat Rack (FR) มักบรรทุกสินค้าล้นตู้ จึงต้องถาม Over Height/Width เพิ่ม
+function isOversizeType(sizeVal){
+  const v = (sizeVal || "").trim().toUpperCase();
+  return v.endsWith("UT") || v.endsWith("FR");
+}
+function updateOversizeVisibility(){
+  $("#oversizeFields").style.display = isOversizeType($("#mSize").value) ? "" : "none";
+}
 function openModal(index){
   editIndex = (typeof index === "number") ? index : -1;
   const m = $("#modalBg"); clearErr(m);
@@ -511,16 +529,19 @@ function openModal(index){
     $("#mCommodity").value=c.commodity||""; $("#mTemp").value=c.temp||"";
     $("#mHumidity").value=c.humidity||"";
     $("#mVent").value=c.vent||""; $("#mDgUn").value=c.dgUn||"";
+    $("#mOverHeight").value=c.overHeight||""; $("#mOverWidth").value=c.overWidth||"";
     $("#modalTitle").textContent = "แก้ไขข้อมูลตู้ #" + (editIndex+1);
     $("#mConfirmMore").style.display = "none";
     $("#mConfirm").textContent = "บันทึก";
   }else{
     $("#mSize").value=""; $("#mCntr").value=""; $("#mStatus").value="";
     $("#mCommodity").value=""; $("#mTemp").value=""; $("#mHumidity").value=""; $("#mVent").value=""; $("#mDgUn").value="";
+    $("#mOverHeight").value=""; $("#mOverWidth").value="";
     $("#modalTitle").textContent = "เพิ่มข้อมูลตู้";
     $("#mConfirmMore").style.display = "";
     $("#mConfirm").textContent = "＋ เพิ่มตู้";
   }
+  updateOversizeVisibility();
   m.classList.add("show");
   setTimeout(()=>$("#mSize").focus(), 50);
 }
@@ -540,7 +561,9 @@ function readModal(){
     temp: $("#mTemp").value.trim(),
     humidity: $("#mHumidity").value.trim(),
     vent: $("#mVent").value.trim(),
-    dgUn: $("#mDgUn").value.trim()
+    dgUn: $("#mDgUn").value.trim(),
+    overHeight: isOversizeType(size) ? $("#mOverHeight").value.trim() : "",
+    overWidth: isOversizeType(size) ? $("#mOverWidth").value.trim() : ""
   };
 }
 function commitModal(keepOpen){
@@ -568,6 +591,7 @@ function renderContainers(){
     if(c.dgUn) extra.push('<span class="badge e">DG</span>');
     if(c.temp) extra.push('<span class="badge">'+escapeHtml(c.temp)+'</span>');
     if(c.humidity) extra.push('<span class="badge">'+escapeHtml(c.humidity)+'</span>');
+    if(c.overHeight || c.overWidth) extra.push('<span class="badge e">OS</span>');
     row.innerHTML =
       '<div class="idx">'+(i+1)+'</div>'+
       '<div class="info"><div class="cn">'+escapeHtml(c.container)+'</div>'+
@@ -597,7 +621,7 @@ function showErr(name){ const b=$('.msg-err[data-for="'+name+'"]'); if(b) b.clas
 /* ================= สร้างแถวข้อมูล ================= */
 // ท่าที่ยังไม่มีช่องกรอก "ชื่อบริษัท/Shipper" แยกในแม่แบบ (หรืออยากให้ย้ำอีกที)
 // จึงต้องแนบชื่อบริษัทไว้ในช่อง REMARK ของแต่ละตู้ด้วย
-const REMARK_INCLUDE_COMPANY_KEYS = new Set(["A0", "B3"]);
+const REMARK_INCLUDE_COMPANY_KEYS = new Set(["A0", "B3", "A2"]);
 
 function buildRows(p){
   const vessel = p.vessel.trim(), voy = p.voy.trim();
@@ -608,16 +632,25 @@ function buildRows(p){
     ((p.contactEmail||"").trim() ? " "+(p.contactEmail||"").trim() : "");
   const conf = TERMINALS[p.terminal];
   const needsCompany = conf && REMARK_INCLUDE_COMPANY_KEYS.has(conf.key);
-  const remarkParts = [];
-  if(specialCond) remarkParts.push(specialCond);
-  if(needsCompany && p.shipper.trim()) remarkParts.push(p.shipper.trim());
-  remarkParts.push(contactLine);
-  const remark = remarkParts.join("\n");
+  const baseRemarkParts = [];
+  if(specialCond) baseRemarkParts.push(specialCond);
+  if(needsCompany && p.shipper.trim()) baseRemarkParts.push(p.shipper.trim());
 
   return p.rows.map(it=>{
     const raw = (it.size || "").trim();
     const [sn, st] = splitSize(raw);
     const dgUn = (it.dgUn || "").trim();
+    const overHeight = (it.overHeight || "").trim();
+    const overWidth = (it.overWidth || "").trim();
+
+    const remarkParts = baseRemarkParts.slice();
+    const oversizeBits = [];
+    if(overHeight) oversizeBits.push("Over Height: "+overHeight);
+    if(overWidth) oversizeBits.push("Over Width: "+overWidth);
+    if(oversizeBits.length) remarkParts.push(oversizeBits.join(", "));
+    remarkParts.push(contactLine);
+    const remark = remarkParts.join("\n");
+
     return {
       container:(it.container||"").trim().toUpperCase(),
       size: sn, type: st,
@@ -629,6 +662,7 @@ function buildRows(p){
       seal:(it.seal||"").trim(), vgm:(it.vgm||"").trim(),
       commodity:(it.commodity||"").trim(),
       temp:(it.temp||"").trim(), humidity:(it.humidity||"").trim(), vent:(it.vent||"").trim(),
+      over_height: overHeight, over_width: overWidth,
       un_number: dgUn, dg_flag: dgUn ? "Y" : "",
       remark: remark
     };
@@ -746,7 +780,8 @@ async function submitForm(ev){
     contactPhone: $("#contactPhone").value.trim(),
     contactEmail: $("#contactEmail").value.trim(),
     rows: containers.map(c=>({size:c.size, container:c.container, status:c.status,
-      commodity:c.commodity, temp:c.temp, vent:c.vent, dgUn:c.dgUn}))
+      commodity:c.commodity, temp:c.temp, humidity:c.humidity, vent:c.vent, dgUn:c.dgUn,
+      overHeight:c.overHeight, overWidth:c.overWidth}))
   };
 
   const btn = $("#btnSubmit");
@@ -809,6 +844,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#mConfirm").addEventListener("click", ()=>commitModal(false));
   $("#mConfirmMore").addEventListener("click", ()=>commitModal(true));
   $("#modalBg").addEventListener("click", e=>{ if(e.target === $("#modalBg")) closeModal(); });
+  $("#mSize").addEventListener("change", updateOversizeVisibility);
   document.addEventListener("keydown", e=>{ if(e.key === "Escape") closeModal(); });
 
   $("#cntrList").addEventListener("click", e=>{

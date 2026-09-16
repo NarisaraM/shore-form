@@ -80,10 +80,16 @@ def _build_mail(payload: dict, result: dict):
             extra.append(f"commodity={r['commodity']}")
         if r.get("temp"):
             extra.append(f"temp={r['temp']}")
+        if r.get("humidity"):
+            extra.append(f"humidity={r['humidity']}")
         if r.get("vent"):
             extra.append(f"vent={r['vent']}")
         if r.get("dgUn"):
             extra.append(f"DG/UN={r['dgUn']}")
+        if r.get("overHeight"):
+            extra.append(f"overHeight={r['overHeight']}")
+        if r.get("overWidth"):
+            extra.append(f"overWidth={r['overWidth']}")
         extra_str = ("  " + "  ".join(extra)) if extra else ""
         lines.append(
             f"  {i}. {r.get('container','')}  size={r.get('size','')}  status={r.get('status','')}{extra_str}"
