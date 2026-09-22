@@ -274,7 +274,6 @@ const CFG_FALLBACK = {
     "LCMT Company LTD, ( under LCB1 Group)  A0",
     "ESCO (EASTERN SEA LCH CNTR TML/B3)",
     "B5/C3 LCIT (LAEM CHABANG INTERNATIONAL TERMINAL CO., LTD)",
-    "A2 ( Thai Laemchabang Terminal, TLT / 허치슨 )",
     "A3 (C1,C2) (Hutchison Laemchabang Terminal Limited, HLT)"
   ],
   sizes: ["20 GP","40 GP","40 HQ","20 RH","40 RH","20 UT","40 UT","20 TK","40 TK","20 FR","40 FR"],
@@ -316,12 +315,6 @@ const TERMINALS = {
     table:{start:2, max:500,
       cols:{vessel_voy:"A",opr:"B",owner:"C",ss:"D",status:"E",container:"F",size:"G",type:"H",pod:"J",booking:"M",shipper:"N",wt_uom:"P",org:"Q"},
       rowConst:{opr:"HAS",owner:"HAS",ss:"EX",wt_uom:"KG",org:"LCB"}}
-  },
-  "A2 ( Thai Laemchabang Terminal, TLT / 허치슨 )": {
-    key:"A2", tpl:"templates/A2-FORM-A.xlsx", out:"A2-FORM A.xlsx", sheet:"FORM A",
-    header:{vessel:"B8", voy:"I8"},
-    table:{start:12, max:13, cols:{no:"A",container:"B",size:"C",type:"D",vgm:"F",agent:"G",pod:"H",booking:"I",
-      remark:"J"}}
   },
   "A3 (C1,C2) (Hutchison Laemchabang Terminal Limited, HLT)": {
     key:"A3C1C2", tpl:"templates/A3C1C2-HUTCHISON.xlsx", out:"A3C1C2-HUTCHISON.xlsx", sheet:"HPT",
@@ -631,7 +624,7 @@ function showErr(name){ const b=$('.msg-err[data-for="'+name+'"]'); if(b) b.clas
 /* ================= สร้างแถวข้อมูล ================= */
 // ท่าที่ยังไม่มีช่องกรอก "ชื่อบริษัท/Shipper" แยกในแม่แบบ (หรืออยากให้ย้ำอีกที)
 // จึงต้องแนบชื่อบริษัทไว้ในช่อง REMARK ของแต่ละตู้ด้วย
-const REMARK_INCLUDE_COMPANY_KEYS = new Set(["A0", "B3", "A2"]);
+const REMARK_INCLUDE_COMPANY_KEYS = new Set(["A0", "B3"]);
 
 function buildRows(p){
   const vessel = p.vessel.trim(), voy = p.voy.trim();

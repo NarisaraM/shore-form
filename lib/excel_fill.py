@@ -38,7 +38,7 @@ AGENT_NAME = "HEUNG-A"
 # ---------------------------------------------------------------------------
 # ท่าที่ยังไม่มีช่องกรอก "ชื่อบริษัท/Shipper" แยกในแม่แบบ (หรืออยากให้ย้ำอีกที)
 # จึงต้องแนบชื่อบริษัทไว้ในช่อง REMARK ของแต่ละตู้ด้วย
-REMARK_INCLUDE_COMPANY_KEYS = {"A0", "B3", "A2"}
+REMARK_INCLUDE_COMPANY_KEYS = {"A0", "B3"}
 
 TERMINALS: Dict[str, Dict] = {
     # ---------- A0 : LCMT / LCB1 ----------
@@ -103,25 +103,6 @@ TERMINALS: Dict[str, Dict] = {
                 "org": "Q",          # ORG
             },
             "row_constants": {"opr": "HAS", "owner": "HAS", "ss": "EX", "wt_uom": "KG", "org": "LCB"},
-        },
-    },
-    # ---------- A2 : Thai Laemchabang Terminal (TLT) ----------
-    # เขียนลงตาราง "SHUT OUT CONTAINER" (คอลัมน์ A-J) ไม่ใช่ "ADDITIONAL CONTAINER" (คอลัมน์ L-U)
-    # ที่อยู่ข้าง ๆ กัน - สองตารางนี้มีโครงสร้างคอลัมน์เหมือนกันทุกประการ
-    "A2 ( Thai Laemchabang Terminal, TLT / 허치슨 )": {
-        "key": "A2",
-        "src": "input/A2-FORM  A.xlsx",
-        "out": "A2-FORM A.xlsx",
-        "sheet": "FORM A",
-        "header": {"vessel": "B8", "voy": "I8"},
-        "table": {
-            "start_row": 12,
-            "max_rows": 13,
-            "cols": {
-                "no": "A", "container": "B", "size": "C", "type": "D",
-                "vgm": "F", "agent": "G", "pod": "H", "booking": "I",
-                "remark": "J",
-            },
         },
     },
     # ---------- A3 (C1,C2) : Hutchison (HLT) ----------

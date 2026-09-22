@@ -30,7 +30,6 @@ TEMPLATES = {
     "A0": "docs/templates/A0-SHORE.xlsx",
     "B3": "docs/templates/B3-SHORE.xlsx",
     "B5C3": "docs/templates/B5C3-SHORE.xlsx",
-    "A2": "docs/templates/A2-FORM-A.xlsx",
     "A3C1C2": "docs/templates/A3C1C2-HUTCHISON.xlsx",
 }
 CHECK_XLSX = "docs/Check.xlsx"

@@ -35,7 +35,6 @@ TEMPLATES = {
     "A0-SHORE.xls": "A0-SHORE.xlsx",
     "B3-SHORE.xls": "B3-SHORE.xlsx",
     "B5C3-SHORE.xls": "B5C3-SHORE.xlsx",
-    "A2-FORM  A.xlsx": "A2-FORM-A.xlsx",
     "A3C1C2-HUTCHISON.xls": "A3C1C2-HUTCHISON.xlsx",
 }
 

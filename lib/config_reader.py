@@ -29,7 +29,6 @@ FALLBACK = {
         "LCMT Company LTD, ( under LCB1 Group)  A0",
         "ESCO (EASTERN SEA LCH CNTR TML/B3)",
         "B5/C3 LCIT (LAEM CHABANG INTERNATIONAL TERMINAL CO., LTD)",
-        "A2 ( Thai Laemchabang Terminal, TLT / 허치슨 )",
         "A3 (C1,C2) (Hutchison Laemchabang Terminal Limited, HLT)",
     ],
     "sizes": [
