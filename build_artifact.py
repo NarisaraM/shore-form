@@ -58,8 +58,10 @@ def main():
 
     # ---- 2) โลโก้ + รูปพื้นหลัง (watermark) -> data URI ----
     logo_b64 = b64_of(LOGO_PNG)
+    old_logo_src = 'src="logo.png?v=2"'
+    assert old_logo_src in body_inner, "หา src=\"logo.png?v=2\" ใน docs/index.html ไม่เจอ (เลขเวอร์ชัน cache-bust เปลี่ยนไปหรือเปล่า?)"
     body_inner = body_inner.replace(
-        'src="logo.png"', f'src="data:image/png;base64,{logo_b64}"'
+        old_logo_src, f'src="data:image/png;base64,{logo_b64}"'
     )
     bg_b64 = b64_of(BG_JPG)
     style_text = m_style.group(0).replace(
