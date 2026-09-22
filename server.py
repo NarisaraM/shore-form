@@ -164,6 +164,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/logo.png":
             return self._serve_file(os.path.join(BASE_DIR, "logo.png"), "image/png")
 
+        if path == "/bg-containers.jpg":
+            return self._serve_file(os.path.join(BASE_DIR, "bg-containers.jpg"), "image/jpeg")
+
         if path.startswith("/web/"):
             return self._serve_file(os.path.join(BASE_DIR, path.lstrip("/")),
                                     self._guess_ctype(path))

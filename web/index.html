@@ -27,6 +27,13 @@
     color:var(--text);
     line-height:1.5;
     padding:0 12px 64px;
+    position:relative;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-1;
+    background:
+      linear-gradient(180deg, rgba(245,248,253,.88), rgba(232,240,254,.93)),
+      url("/bg-containers.jpg") center/cover no-repeat fixed;
   }
   .wrap{max-width:700px;margin:0 auto}
 
@@ -44,7 +51,12 @@
     font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;margin-bottom:12px;
   }
   .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
-  .hero .logo{height:40px;width:auto;flex:none;margin-top:2px}
+  .hero-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
+  .hero .logo{height:40px;width:auto;flex:none}
+  .live-clock{
+    font-size:12px;color:var(--blue-dark);font-weight:600;white-space:nowrap;
+    font-variant-numeric:tabular-nums;background:var(--blue-light);padding:3px 9px;border-radius:999px;
+  }
   .hero h1{margin:0 0 6px;font-size:26px;font-weight:600}
   .hero p{margin:0;color:var(--muted);font-size:14px}
   .hero .req-note{margin-top:14px;color:var(--danger);font-size:13px}
@@ -173,6 +185,10 @@
     .hero h1{font-size:19px}
     .hero .logo{height:28px}
     .btn-primary{width:100%}
+    .live-clock{font-size:10px;padding:2px 7px}
+  }
+  @media (max-width:380px){
+    .live-clock{display:none}
   }
 </style>
 </head>
@@ -183,7 +199,10 @@
     <span class="pill">⚓ Booking Amendment</span>
     <div class="hero-top">
       <h1>Self Service Shore</h1>
-      <img class="logo" src="/logo.png" alt="Heung-A Line" />
+      <div class="hero-right">
+        <img class="logo" src="/logo.png" alt="Heung-A Line" />
+        <div id="liveClock" class="live-clock"></div>
+      </div>
     </div>
     <div class="req-note">* จำเป็นต้องกรอก</div>
     <div id="mailWarn" class="req-note" hidden>⚠ ยังไม่ได้ตั้งค่าอีเมลผู้ส่ง (SMTP) บนเซิร์ฟเวอร์ — ดู README.md หัวข้อ "ตั้งค่าการส่งอีเมล"</div>
@@ -637,11 +656,24 @@ function showResultError(msg){
     '</div>';
 }
 
+/* ---------- นาฬิกาเวลาจริง (English) มุมบนขวา ใต้โลโก้ ---------- */
+function updateLiveClock(){
+  const el = document.getElementById("liveClock");
+  if(!el) return;
+  const now = new Date();
+  el.textContent = now.toLocaleString("en-US", {
+    weekday:"short", year:"numeric", month:"short", day:"2-digit",
+    hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:true
+  });
+}
+
 /* ---------- events ---------- */
 document.addEventListener("DOMContentLoaded", ()=>{
   loadConfig();
   checkMailStatus();
   renderContainers();
+  updateLiveClock();
+  setInterval(updateLiveClock, 1000);
 
   $("#form").addEventListener("submit", submitForm);
   $("#btnAdd").addEventListener("click", ()=>openModal(-1));

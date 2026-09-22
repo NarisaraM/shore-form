@@ -35,6 +35,7 @@ TEMPLATES = {
 CHECK_XLSX = "docs/Check.xlsx"
 VSLNAME_XLS = "docs/VSLNAME.xls"
 LOGO_PNG = "docs/logo.png"
+BG_JPG = "docs/bg-containers.jpg"
 
 
 def b64_of(rel_path: str) -> str:
@@ -55,11 +56,16 @@ def main():
         raise SystemExit("โครงสร้าง docs/index.html เปลี่ยนไป - แก้สคริปต์นี้ตามด้วย")
     body_inner = m_body.group(1)
 
-    # ---- 2) โลโก้ -> data URI ----
+    # ---- 2) โลโก้ + รูปพื้นหลัง (watermark) -> data URI ----
     logo_b64 = b64_of(LOGO_PNG)
     body_inner = body_inner.replace(
         'src="logo.png"', f'src="data:image/png;base64,{logo_b64}"'
     )
+    bg_b64 = b64_of(BG_JPG)
+    style_text = m_style.group(0).replace(
+        'url("bg-containers.jpg")', f'url("data:image/jpeg;base64,{bg_b64}")'
+    )
+    assert 'data:image/jpeg;base64,' in style_text, "หา url(\"bg-containers.jpg\") ใน <style> ไม่เจอ"
 
     # ---- 3) ฝังไฟล์แม่แบบ + Check.xlsx เป็น base64 (แทรกก่อนสคริปต์หลัก) ----
     templates_js = ",\n  ".join(f'"{k}": "{b64_of(p)}"' for k, p in TEMPLATES.items())
@@ -384,7 +390,7 @@ function showResult(outFile, rows, warnings, saveStatus, gmailReason){
     body_inner = body_inner.replace(old_result, new_result)
 
     # ---- 9) ประกอบไฟล์สุดท้าย ----
-    out = m_title.group(0) + "\n" + m_style.group(0) + "\n" + embedded_block + body_inner
+    out = m_title.group(0) + "\n" + style_text + "\n" + embedded_block + body_inner
     with open(OUT_HTML, "w", encoding="utf-8", newline="\n") as f:
         f.write(out)
 

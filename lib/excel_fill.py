@@ -5,7 +5,7 @@ excel_fill.py
 - แต่ละ TERMINAL มีไฟล์ผลลัพธ์ / ชีต / ตำแหน่งเซลล์ ของตัวเอง (ดู TERMINALS ข้างล่าง)
 - รัน No. อัตโนมัติเมื่อมีหลายตู้
 - คอลัมน์ LINE => "HAL"
-- เฉพาะ A3 (C1,C2): คอลัมน์ PAYMENT TAEM => "ALL PIY CASH ONLY"
+- เฉพาะ A3 (C1,C2): คอลัมน์ PAYMENT TAEM => "CASH"
 
 ทั้งหมดทำงานด้วย openpyxl (ไม่มี AI)
 """
@@ -36,9 +36,9 @@ AGENT_NAME = "HEUNG-A"
 #     commodity, temp, humidity, vent, dg_flag, un_number, remark,
 #     over_height, over_width
 # ---------------------------------------------------------------------------
-# ท่าที่ยังไม่มีช่องกรอก "ชื่อบริษัท/Shipper" แยกในแม่แบบ (หรืออยากให้ย้ำอีกที)
-# จึงต้องแนบชื่อบริษัทไว้ในช่อง REMARK ของแต่ละตู้ด้วย
-REMARK_INCLUDE_COMPANY_KEYS = {"A0", "B3"}
+# ท่าที่ให้เขียนช่อง REMARK เป็นชื่อบริษัท (Shipper) อย่างเดียว (ข้อมูลผู้ติดต่อ/เวลาส่ง
+# ย้ายไปมีช่องของตัวเองในแม่แบบแล้ว ไม่ต้องพ่วงมากับ REMARK อีกต่อไป)
+REMARK_SHIPPER_ONLY_KEYS = {"A0", "B3"}
 
 TERMINALS: Dict[str, Dict] = {
     # ---------- A0 : LCMT / LCB1 ----------
@@ -47,7 +47,11 @@ TERMINALS: Dict[str, Dict] = {
         "src": "input/A0-SHORE.xls",
         "out": "A0-SHORE.xlsx",
         "sheet": "Sheet1",
-        "header": {"vessel": "E6", "voy": "I6"},
+        "header": {
+            "vessel": "E6", "voy": "I6",
+            "contact_all": "A26",       # Contact ชื่อ/เบอร์โทร/Email รวมกัน
+            "submitted_at_by": "K27",   # วันที่-เวลาที่ส่ง + ผู้กรอกข้อมูล
+        },
         "table": {
             "start_row": 14,
             "max_rows": 11,
@@ -65,7 +69,12 @@ TERMINALS: Dict[str, Dict] = {
         "out": "B3-SHORE.xlsx",
         "sheet": "CHORE CY",
         # C11 เป็นเซลล์ที่ผสาน Vessel+Voy ไว้ด้วยกัน (แม่แบบรุ่นล่าสุด) จึงรวมเป็นช่องเดียว
-        "header": {"vessel_voy": "C11", "shipper": "C12"},
+        "header": {
+            "vessel_voy": "C11", "shipper": "C12",
+            "contact_combined": "A32",  # ชื่อผู้ติดต่อ / เบอร์โทรศัพท์
+            "contact_email": "H32",     # Email
+            "submitted_at": "H34",      # วันที่-เวลาที่ส่ง (ช่องว่างเหนือป้าย "Date / Time" ที่ H35)
+        },
         "table": {
             "start_row": 17,
             "max_rows": 20,
@@ -83,7 +92,12 @@ TERMINALS: Dict[str, Dict] = {
         "src": "input/B5C3-SHORE.xls",
         "out": "B5C3-SHORE.xlsx",
         "sheet": "DataImport",
-        "header": {},
+        "header": {
+            "contact_name": "B21",   # ใต้ป้าย "CONTACT :" ที่ A21
+            "contact_phone": "B22",  # ใต้ป้าย "TEL NO. :" ที่ A22
+            "contact_email": "B23",  # ใต้ป้าย "EMAIL :" ที่ A23
+            "submitted_at": "N23",   # วันที่-เวลาที่ส่ง
+        },
         "table": {
             "start_row": 2,
             "max_rows": 500,
@@ -101,8 +115,12 @@ TERMINALS: Dict[str, Dict] = {
                 "shipper": "N",      # Shipper
                 "wt_uom": "P",       # Wt UOM
                 "org": "Q",          # ORG
+                "remark": "U",       # Remark
             },
-            "row_constants": {"opr": "HAS", "owner": "HAS", "ss": "EX", "wt_uom": "KG", "org": "LCB"},
+            "row_constants": {
+                "opr": "HAS", "owner": "HAS", "ss": "EX", "wt_uom": "KG", "org": "LCB",
+                "remark": "CASH",
+            },
         },
     },
     # ---------- A3 (C1,C2) : Hutchison (HLT) ----------
@@ -111,7 +129,12 @@ TERMINALS: Dict[str, Dict] = {
         "src": "input/A3C1C2-HUTCHISON.xls",
         "out": "A3C1C2-HUTCHISON.xlsx",
         "sheet": "HPT",
-        "header": {},
+        "header": {
+            "submitted_at": "C32",   # ใต้ป้าย "Date / Time" ที่ A32
+            "contact_name": "C33",   # ใต้ป้าย "NAME / ชื่อ :" ที่ A33
+            "contact_phone": "C34",  # ใต้ป้าย "TEL / โทร :" ที่ A34
+            "contact_email": "C35",  # ใต้ป้าย "EMAIL :" ที่ A35
+        },
         "table": {
             "start_row": 10,
             "max_rows": 19,
@@ -122,7 +145,7 @@ TERMINALS: Dict[str, Dict] = {
                 "commodity": "N", "temp": "O", "vent": "P",
                 "dg_flag": "R", "un_number": "S", "remark": "V",
             },
-            "row_constants": {"payment": "ALL PIY CASH ONLY"},
+            "row_constants": {"payment": "CASH"},
         },
     },
 }
@@ -189,9 +212,7 @@ def build_record_rows(payload: Dict) -> List[Dict]:
         contact_line += " " + contact_email
 
     terminal_key = (TERMINALS.get(terminal) or {}).get("key")
-    base_remark_parts = [p for p in (special_cond,) if p]
-    if terminal_key in REMARK_INCLUDE_COMPANY_KEYS and shipper:
-        base_remark_parts.append(shipper)
+    shipper_only_remark = terminal_key in REMARK_SHIPPER_ONLY_KEYS
 
     rows: List[Dict] = []
     for item in payload.get("rows", []):
@@ -201,16 +222,19 @@ def build_record_rows(payload: Dict) -> List[Dict]:
         over_height = (item.get("overHeight") or "").strip()
         over_width = (item.get("overWidth") or "").strip()
 
-        remark_parts = list(base_remark_parts)
-        oversize_bits = []
-        if over_height:
-            oversize_bits.append(f"Over Height: {over_height}")
-        if over_width:
-            oversize_bits.append(f"Over Width: {over_width}")
-        if oversize_bits:
-            remark_parts.append(", ".join(oversize_bits))
-        remark_parts.append(contact_line)
-        remark = "\n".join(remark_parts)
+        if shipper_only_remark:
+            remark = shipper
+        else:
+            remark_parts = [p for p in (special_cond,) if p]
+            oversize_bits = []
+            if over_height:
+                oversize_bits.append(f"Over Height: {over_height}")
+            if over_width:
+                oversize_bits.append(f"Over Width: {over_width}")
+            if oversize_bits:
+                remark_parts.append(", ".join(oversize_bits))
+            remark_parts.append(contact_line)
+            remark = "\n".join(remark_parts)
 
         rows.append({
             "container": (item.get("container") or "").strip().upper(),
@@ -271,10 +295,15 @@ def fill(payload: Dict, base_dir: str, cache_dir: str, out_dir: str) -> Dict:
     if sheet_name not in wb.sheetnames:
         warnings.append(f"ไม่พบชีต {sheet_name!r} ใช้ชีต {ws.title!r} แทน")
 
-    # ---- ส่วนหัว: Vessel / Voy. / Shipper / POD / Booking ----
+    # ---- ส่วนหัว: Vessel / Voy. / Shipper / POD / Booking / ผู้ติดต่อ / เวลาที่ส่ง ----
     # (vessel_voy = ช่องที่ผสาน Vessel+Voy ไว้ด้วยกัน เขียนเป็น "M.V. {vessel} V.{voy}")
     header = conf.get("header", {})
     r0 = rows[0]
+    contact_name = (payload.get("contactName") or "").strip()
+    contact_phone = (payload.get("contactPhone") or "").strip()
+    contact_email = (payload.get("contactEmail") or "").strip()
+    submitted_dt = datetime.now().strftime("%d/%m/%Y %H:%M")
+
     if header.get("vessel"):
         _set(ws, header["vessel"], r0["vessel"])
     if header.get("voy"):
@@ -287,6 +316,21 @@ def fill(payload: Dict, base_dir: str, cache_dir: str, out_dir: str) -> Dict:
         _set(ws, header["booking"], r0["booking"])
     if header.get("vessel_voy"):
         _set(ws, header["vessel_voy"], f"M.V. {r0['vessel']} V.{r0['voy']}".strip())
+    if header.get("contact_name"):
+        _set(ws, header["contact_name"], contact_name)
+    if header.get("contact_phone"):
+        _set(ws, header["contact_phone"], contact_phone)
+    if header.get("contact_email"):
+        _set(ws, header["contact_email"], contact_email)
+    if header.get("contact_combined"):
+        _set(ws, header["contact_combined"], " / ".join(p for p in (contact_name, contact_phone) if p))
+    if header.get("contact_all"):
+        _set(ws, header["contact_all"], " / ".join(p for p in (contact_name, contact_phone, contact_email) if p))
+    if header.get("submitted_at"):
+        _set(ws, header["submitted_at"], submitted_dt)
+    if header.get("submitted_at_by"):
+        by = f" - {contact_name}" if contact_name else ""
+        _set(ws, header["submitted_at_by"], f"{submitted_dt}{by}")
 
     tbl = conf["table"]
     start = tbl["start_row"]

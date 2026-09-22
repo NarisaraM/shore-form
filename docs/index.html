@@ -16,6 +16,13 @@
   body{
     font-family:"Segoe UI",Roboto,"Helvetica Neue","Noto Sans Thai",Tahoma,Arial,sans-serif;
     background:var(--bg);color:var(--text);line-height:1.5;padding:0 12px 64px;
+    position:relative;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-1;
+    background:
+      linear-gradient(180deg, rgba(245,248,253,.88), rgba(232,240,254,.93)),
+      url("bg-containers.jpg") center/cover no-repeat fixed;
   }
   .wrap{max-width:700px;margin:0 auto}
   .hero{
@@ -27,7 +34,12 @@
     font-size:12px;font-weight:700;padding:5px 12px;border-radius:999px;margin-bottom:12px;
   }
   .hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
-  .hero .logo{height:40px;width:auto;flex:none;margin-top:2px}
+  .hero-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
+  .hero .logo{height:40px;width:auto;flex:none}
+  .live-clock{
+    font-size:12px;color:var(--blue-dark);font-weight:600;white-space:nowrap;
+    font-variant-numeric:tabular-nums;background:var(--blue-light);padding:3px 9px;border-radius:999px;
+  }
   .hero h1{margin:0 0 6px;font-size:26px;font-weight:600}
   .hero p{margin:0;color:var(--muted);font-size:14px}
   .hero .req-note{margin-top:14px;color:var(--danger);font-size:13px}
@@ -97,6 +109,10 @@
   @media (max-width:520px){
     .hero{padding:20px 16px}.card{padding:18px 16px}.hero h1{font-size:19px}.btn-primary{width:100%}
     .hero .logo{height:28px}
+    .live-clock{font-size:10px;padding:2px 7px}
+  }
+  @media (max-width:380px){
+    .live-clock{display:none}
   }
 </style>
 </head>
@@ -107,7 +123,10 @@
     <span class="pill">⚓ Booking Amendment</span>
     <div class="hero-top">
       <h1>Self Service Shore</h1>
-      <img class="logo" src="logo.png" alt="Heung-A Line" />
+      <div class="hero-right">
+        <img class="logo" src="logo.png" alt="Heung-A Line" />
+        <div id="liveClock" class="live-clock"></div>
+      </div>
     </div>
     <div class="req-note">* จำเป็นต้องกรอก</div>
   </div>
@@ -299,30 +318,30 @@ const CONTAINER_RE = /^[A-Z]{4}\d{7}$/;
 const TERMINALS = {
   "LCMT Company LTD, ( under LCB1 Group)  A0": {
     key:"A0", tpl:"templates/A0-SHORE.xlsx", out:"A0-SHORE.xlsx", sheet:"Sheet1",
-    header:{vessel:"E6", voy:"I6"},
+    header:{vessel:"E6", voy:"I6", contact_all:"A26", submitted_at_by:"K27"},
     table:{start:14, max:11, cols:{no:"A",container:"C",booking:"D",size:"E",type:"F",pod:"G",
       temp:"H",vent:"I",remark:"K"}}
   },
   "ESCO (EASTERN SEA LCH CNTR TML/B3)": {
     key:"B3", tpl:"templates/B3-SHORE.xlsx", out:"B3-SHORE.xlsx", sheet:"CHORE CY",
-    header:{vessel_voy:"C11", shipper:"C12"},
+    header:{vessel_voy:"C11", shipper:"C12", contact_combined:"A32", contact_email:"H32", submitted_at:"H34"},
     table:{start:17, max:20, cols:{no:"A",container:"B",type:"C",size:"D",pod:"E",booking:"J",
       temp:"G",dg_flag:"H",remark:"L"}}
   },
   "B5/C3 LCIT (LAEM CHABANG INTERNATIONAL TERMINAL CO., LTD)": {
     key:"B5C3", tpl:"templates/B5C3-SHORE.xlsx", out:"B5C3-SHORE.xlsx", sheet:"DataImport",
-    header:{},
+    header:{contact_name:"B21", contact_phone:"B22", contact_email:"B23", submitted_at:"N23"},
     table:{start:2, max:500,
-      cols:{vessel_voy:"A",opr:"B",owner:"C",ss:"D",status:"E",container:"F",size:"G",type:"H",pod:"J",booking:"M",shipper:"N",wt_uom:"P",org:"Q"},
-      rowConst:{opr:"HAS",owner:"HAS",ss:"EX",wt_uom:"KG",org:"LCB"}}
+      cols:{vessel_voy:"A",opr:"B",owner:"C",ss:"D",status:"E",container:"F",size:"G",type:"H",pod:"J",booking:"M",shipper:"N",wt_uom:"P",org:"Q",remark:"U"},
+      rowConst:{opr:"HAS",owner:"HAS",ss:"EX",wt_uom:"KG",org:"LCB",remark:"CASH"}}
   },
   "A3 (C1,C2) (Hutchison Laemchabang Terminal Limited, HLT)": {
     key:"A3C1C2", tpl:"templates/A3C1C2-HUTCHISON.xlsx", out:"A3C1C2-HUTCHISON.xlsx", sheet:"HPT",
-    header:{},
+    header:{submitted_at:"C32", contact_name:"C33", contact_phone:"C34", contact_email:"C35"},
     table:{start:10, max:19,
       cols:{no:"A",line:"B",shipper:"C",size:"D",type:"E",container:"F",vessel:"G",voy:"H",pod:"I",booking:"K",seal:"L",status:"M",payment:"U",
         commodity:"N",temp:"O",vent:"P",dg_flag:"R",un_number:"S",remark:"V"},
-      rowConst:{payment:"ALL PIY CASH ONLY"}}
+      rowConst:{payment:"CASH"}}
   }
 };
 
@@ -622,9 +641,25 @@ function hideErr(name){ const b=$('.msg-err[data-for="'+name+'"]'); if(b) b.clas
 function showErr(name){ const b=$('.msg-err[data-for="'+name+'"]'); if(b) b.classList.add("show"); }
 
 /* ================= สร้างแถวข้อมูล ================= */
-// ท่าที่ยังไม่มีช่องกรอก "ชื่อบริษัท/Shipper" แยกในแม่แบบ (หรืออยากให้ย้ำอีกที)
-// จึงต้องแนบชื่อบริษัทไว้ในช่อง REMARK ของแต่ละตู้ด้วย
-const REMARK_INCLUDE_COMPANY_KEYS = new Set(["A0", "B3"]);
+// ท่าที่ให้เขียนช่อง REMARK เป็นชื่อบริษัท (Shipper) อย่างเดียว (ข้อมูลผู้ติดต่อ/เวลาส่ง
+// ย้ายไปมีช่องของตัวเองในแม่แบบแล้ว ไม่ต้องพ่วงมากับ REMARK อีกต่อไป)
+const REMARK_SHIPPER_ONLY_KEYS = new Set(["A0", "B3"]);
+
+function pad2(n){ return String(n).padStart(2,"0"); }
+function formatSubmittedAt(d){
+  return pad2(d.getDate())+"/"+pad2(d.getMonth()+1)+"/"+d.getFullYear()+" "+pad2(d.getHours())+":"+pad2(d.getMinutes());
+}
+
+/* ================= นาฬิกาเวลาจริง (English) มุมบนขวา ใต้โลโก้ ================= */
+function updateLiveClock(){
+  const el = document.getElementById("liveClock");
+  if(!el) return;
+  const now = new Date();
+  el.textContent = now.toLocaleString("en-US", {
+    weekday:"short", year:"numeric", month:"short", day:"2-digit",
+    hour:"2-digit", minute:"2-digit", second:"2-digit", hour12:true
+  });
+}
 
 function buildRows(p){
   const vessel = p.vessel.trim(), voy = p.voy.trim();
@@ -634,10 +669,8 @@ function buildRows(p){
   const contactLine = "Contact: "+(p.contactName||"").trim()+" "+(p.contactPhone||"").trim()+
     ((p.contactEmail||"").trim() ? " "+(p.contactEmail||"").trim() : "");
   const conf = TERMINALS[p.terminal];
-  const needsCompany = conf && REMARK_INCLUDE_COMPANY_KEYS.has(conf.key);
-  const baseRemarkParts = [];
-  if(specialCond) baseRemarkParts.push(specialCond);
-  if(needsCompany && p.shipper.trim()) baseRemarkParts.push(p.shipper.trim());
+  const shipperOnlyRemark = conf && REMARK_SHIPPER_ONLY_KEYS.has(conf.key);
+  const submittedAt = formatSubmittedAt(new Date());
 
   return p.rows.map(it=>{
     const raw = (it.size || "").trim();
@@ -646,13 +679,19 @@ function buildRows(p){
     const overHeight = (it.overHeight || "").trim();
     const overWidth = (it.overWidth || "").trim();
 
-    const remarkParts = baseRemarkParts.slice();
-    const oversizeBits = [];
-    if(overHeight) oversizeBits.push("Over Height: "+overHeight);
-    if(overWidth) oversizeBits.push("Over Width: "+overWidth);
-    if(oversizeBits.length) remarkParts.push(oversizeBits.join(", "));
-    remarkParts.push(contactLine);
-    const remark = remarkParts.join("\n");
+    let remark;
+    if(shipperOnlyRemark){
+      remark = p.shipper.trim();
+    }else{
+      const remarkParts = [];
+      if(specialCond) remarkParts.push(specialCond);
+      const oversizeBits = [];
+      if(overHeight) oversizeBits.push("Over Height: "+overHeight);
+      if(overWidth) oversizeBits.push("Over Width: "+overWidth);
+      if(oversizeBits.length) remarkParts.push(oversizeBits.join(", "));
+      remarkParts.push(contactLine);
+      remark = remarkParts.join("\n");
+    }
 
     return {
       container:(it.container||"").trim().toUpperCase(),
@@ -667,7 +706,9 @@ function buildRows(p){
       temp:(it.temp||"").trim(), humidity:(it.humidity||"").trim(), vent:(it.vent||"").trim(),
       over_height: overHeight, over_width: overWidth,
       un_number: dgUn, dg_flag: dgUn ? "Y" : "",
-      remark: remark
+      remark: remark,
+      contact_name:(p.contactName||"").trim(), contact_phone:(p.contactPhone||"").trim(),
+      contact_email:(p.contactEmail||"").trim(), submitted_at: submittedAt
     };
   });
 }
@@ -703,6 +744,13 @@ async function fillTemplate(conf, rows){
   if(h.pod)        set(h.pod, r0.pod);
   if(h.booking)    set(h.booking, r0.booking);
   if(h.vessel_voy) set(h.vessel_voy, ("M.V. "+r0.vessel+" V."+r0.voy).trim());
+  if(h.contact_name)  set(h.contact_name, r0.contact_name);
+  if(h.contact_phone) set(h.contact_phone, r0.contact_phone);
+  if(h.contact_email) set(h.contact_email, r0.contact_email);
+  if(h.contact_combined) set(h.contact_combined, [r0.contact_name, r0.contact_phone].filter(Boolean).join(" / "));
+  if(h.contact_all)   set(h.contact_all, [r0.contact_name, r0.contact_phone, r0.contact_email].filter(Boolean).join(" / "));
+  if(h.submitted_at)  set(h.submitted_at, r0.submitted_at);
+  if(h.submitted_at_by) set(h.submitted_at_by, r0.submitted_at + (r0.contact_name ? " - "+r0.contact_name : ""));
 
   const t = conf.table, cols = t.cols, rc = t.rowConst || {};
 
@@ -834,6 +882,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   loadConfig();
   renderContainers();
+  updateLiveClock();
+  setInterval(updateLiveClock, 1000);
 
   $("#form").addEventListener("submit", submitForm);
   $("#btnAdd").addEventListener("click", ()=>openModal(-1));
