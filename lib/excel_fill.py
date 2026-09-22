@@ -143,7 +143,8 @@ TERMINALS: Dict[str, Dict] = {
                 "container": "F", "vessel": "G", "voy": "H", "pod": "I",
                 "booking": "K", "seal": "L", "status": "M", "payment": "U",
                 "commodity": "N", "temp": "O", "vent": "P",
-                "dg_flag": "R", "un_number": "S", "remark": "V",
+                "dg_flag": "R", "un_number": "S",
+                # REMARK (V) ไม่ต้องเติมข้อมูลแล้ว ปล่อยว่างไว้ตามที่ระบุ
             },
             "row_constants": {"payment": "CASH"},
         },
