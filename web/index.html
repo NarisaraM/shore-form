@@ -10,7 +10,7 @@
     --blue-dark:#1557b0;
     --blue-light:#e8f0fe;
     --bg:#f5f8fd;
-    --card:rgba(255,255,255,.58);
+    --card:#ffffff;
     --line:#dadce0;
     --edge:#f0f0f0;
     --text:#202124;
@@ -31,9 +31,7 @@
   }
   body::before{
     content:"";position:fixed;inset:0;z-index:-1;
-    background:
-      linear-gradient(180deg, rgba(245,248,253,.55), rgba(232,240,254,.62)),
-      url("/bg-containers.jpg") center/cover no-repeat fixed;
+    background:url("/bg-containers.jpg") center/cover no-repeat fixed;
   }
   .wrap{max-width:700px;margin:0 auto}
 
@@ -45,7 +43,6 @@
     box-shadow:var(--shadow);
     margin-top:24px;
     padding:24px 24px 20px;
-    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   }
   .pill{
     display:inline-flex;align-items:center;gap:6px;background:var(--blue-light);color:var(--blue-dark);
@@ -70,7 +67,6 @@
     margin-top:16px;
     padding:22px 24px;
     border:1px solid var(--edge);
-    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   }
   .card h2{margin:0 0 4px;font-size:18px;font-weight:600}
   .card h2 .sub{display:block;font-size:13px;color:var(--muted);font-weight:400;margin-top:4px}
