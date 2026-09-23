@@ -320,19 +320,19 @@ const CONTAINER_RE = /^[A-Z]{4}\d{7}$/;
 const TERMINALS = {
   "LCMT Company LTD, ( under LCB1 Group)  A0": {
     key:"A0", tpl:"templates/A0-SHORE.xlsx", out:"A0-SHORE.xlsx", sheet:"Sheet1",
-    header:{vessel:"E6", voy:"I6", contact_all:"A26", submitted_at_by:"K27"},
-    table:{start:14, max:11, cols:{no:"A",container:"C",booking:"D",size:"E",type:"F",pod:"G",
-      temp:"H",vent:"I",remark:"K"}}
+    header:{vessel:"F6", voy:"J6", submitted_at:"D36", contact_name:"D37", contact_phone:"D38", contact_email:"D39"},
+    table:{start:14, max:19, cols:{no:"A",container:"C",booking:"E",size:"F",type:"G",pod:"H",
+      temp:"I",vent:"J",remark:"L"}}
   },
   "ESCO (EASTERN SEA LCH CNTR TML/B3)": {
     key:"B3", tpl:"templates/B3-SHORE.xlsx", out:"B3-SHORE.xlsx", sheet:"CHORE CY",
-    header:{vessel_voy:"C11", shipper:"C12", contact_combined:"A32", contact_email:"H32", submitted_at:"H34"},
+    header:{vessel_voy:"C11", shipper:"C12", submitted_at:"C32", contact_name:"C33", contact_phone:"C34", contact_email:"C35"},
     table:{start:17, max:20, cols:{no:"A",container:"B",type:"C",size:"D",pod:"E",booking:"J",
       temp:"G",dg_flag:"H",remark:"L"}}
   },
   "B5/C3 LCIT (LAEM CHABANG INTERNATIONAL TERMINAL CO., LTD)": {
     key:"B5C3", tpl:"templates/B5C3-SHORE.xlsx", out:"B5C3-SHORE.xlsx", sheet:"DataImport",
-    header:{contact_name:"B21", contact_phone:"B22", contact_email:"B23", submitted_at:"N23"},
+    header:{submitted_at:"B22", contact_name:"B23", contact_phone:"B24", contact_email:"B25"},
     table:{start:2, max:500,
       cols:{vessel_voy:"A",opr:"B",owner:"C",ss:"D",status:"E",container:"F",size:"G",type:"H",pod:"J",booking:"M",shipper:"N",wt_uom:"P",org:"Q",remark:"U"},
       rowConst:{opr:"HAS",owner:"HAS",ss:"EX",wt_uom:"KG",org:"LCB",remark:"CASH"}}

@@ -48,17 +48,19 @@ TERMINALS: Dict[str, Dict] = {
         "out": "A0-SHORE.xlsx",
         "sheet": "Sheet1",
         "header": {
-            "vessel": "E6", "voy": "I6",
-            "contact_all": "A26",       # Contact ชื่อ/เบอร์โทร/Email รวมกัน
-            "submitted_at_by": "K27",   # วันที่-เวลาที่ส่ง + ผู้กรอกข้อมูล
+            "vessel": "F6", "voy": "J6",
+            "submitted_at": "D36",   # ใต้ป้าย "Date / Time :" ที่ A36
+            "contact_name": "D37",   # ใต้ป้าย "NAME / ชื่อ :" ที่ A37
+            "contact_phone": "D38",  # ใต้ป้าย "TEL / โทร :" ที่ A38
+            "contact_email": "D39",  # ใต้ป้าย "EMAIL :" ที่ A39
         },
         "table": {
             "start_row": 14,
-            "max_rows": 11,
+            "max_rows": 19,  # แถว 14-32 (แถว 33 เป็นข้อความ disclaimer)
             "cols": {
-                "no": "A", "container": "C", "booking": "D",
-                "size": "E", "type": "F", "pod": "G",
-                "temp": "H", "vent": "I", "remark": "K",
+                "no": "A", "container": "C", "booking": "E",
+                "size": "F", "type": "G", "pod": "H",
+                "temp": "I", "vent": "J", "remark": "L",
             },
         },
     },
@@ -71,9 +73,10 @@ TERMINALS: Dict[str, Dict] = {
         # C11 เป็นเซลล์ที่ผสาน Vessel+Voy ไว้ด้วยกัน (แม่แบบรุ่นล่าสุด) จึงรวมเป็นช่องเดียว
         "header": {
             "vessel_voy": "C11", "shipper": "C12",
-            "contact_combined": "A32",  # ชื่อผู้ติดต่อ / เบอร์โทรศัพท์
-            "contact_email": "H32",     # Email
-            "submitted_at": "H34",      # วันที่-เวลาที่ส่ง (ช่องว่างเหนือป้าย "Date / Time" ที่ H35)
+            "submitted_at": "C32",   # ใต้ป้าย "Date / Time" ที่ A32
+            "contact_name": "C33",   # ใต้ป้าย "NAME / ชื่อ :" ที่ A33
+            "contact_phone": "C34",  # ใต้ป้าย "TEL / โทร :" ที่ A34
+            "contact_email": "C35",  # ใต้ป้าย "EMAIL :" ที่ A35
         },
         "table": {
             "start_row": 17,
@@ -93,10 +96,10 @@ TERMINALS: Dict[str, Dict] = {
         "out": "B5C3-SHORE.xlsx",
         "sheet": "DataImport",
         "header": {
-            "contact_name": "B21",   # ใต้ป้าย "CONTACT :" ที่ A21
-            "contact_phone": "B22",  # ใต้ป้าย "TEL NO. :" ที่ A22
-            "contact_email": "B23",  # ใต้ป้าย "EMAIL :" ที่ A23
-            "submitted_at": "N23",   # วันที่-เวลาที่ส่ง
+            "submitted_at": "B22",   # ใต้ป้าย "Date / Time :" ที่ A22
+            "contact_name": "B23",   # ใต้ป้าย "NAME / ชื่อ :" ที่ A23
+            "contact_phone": "B24",  # ใต้ป้าย "TEL / โทร :" ที่ A24
+            "contact_email": "B25",  # ใต้ป้าย "EMAIL :" ที่ A25
         },
         "table": {
             "start_row": 2,
