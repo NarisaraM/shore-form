@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -202,105 +202,105 @@
         <div id="liveClock" class="live-clock"></div>
       </div>
     </div>
-    <div class="req-note">* จำเป็นต้องกรอก</div>
-    <div id="mailWarn" class="req-note" hidden>⚠ ยังไม่ได้ตั้งค่าอีเมลผู้ส่ง (SMTP) บนเซิร์ฟเวอร์ — ดู README.md หัวข้อ "ตั้งค่าการส่งอีเมล"</div>
+    <div class="req-note">* Required</div>
+    <div id="mailWarn" class="req-note" hidden>⚠ Outgoing email (SMTP) has not been configured on the server — see the "Email Setup" section in README.md</div>
   </div>
 
   <form id="form" autocomplete="off">
 
-    <!-- ====== ส่วนที่ 1 : ข้อมูลหลัก ====== -->
+    <!-- ====== Section 1: Main Information ====== -->
     <div class="card section-title">
-      <h2>ข้อมูลการจอง <span class="sub">Booking / Vessel Information</span></h2>
+      <h2>Booking Information <span class="sub">Terminal &amp; Vessel Details</span></h2>
 
       <div class="field">
         <label class="q" for="terminal">TERMINAL <span class="star">*</span></label>
         <select id="terminal" name="terminal" required>
-          <option value="" disabled selected>— เลือกท่า —</option>
+          <option value="" disabled selected>— Select Terminal —</option>
         </select>
-        <div class="msg-err" data-for="terminal">กรุณาเลือก TERMINAL</div>
+        <div class="msg-err" data-for="terminal">Please select a TERMINAL</div>
       </div>
 
       <div class="field">
-        <label class="q" for="vessel">Vessel (ชื่อเรือ) <span class="star">*</span></label>
+        <label class="q" for="vessel">Vessel <span class="star">*</span></label>
         <select id="vessel" name="vessel" required>
-          <option value="" disabled selected>— เลือกชื่อเรือ —</option>
+          <option value="" disabled selected>— Select Vessel —</option>
         </select>
-        <div class="msg-err" data-for="vessel">กรุณาเลือกชื่อเรือ</div>
+        <div class="msg-err" data-for="vessel">Please select a vessel</div>
       </div>
 
       <div class="field">
-        <label class="q" for="voy">Voy. (เที่ยวเรือ) <span class="star">*</span></label>
-        <input type="text" id="voy" name="voy" placeholder="เช่น 2512N" required />
-        <div class="msg-err" data-for="voy">กรุณากรอก Voy.</div>
+        <label class="q" for="voy">Voy. <span class="star">*</span></label>
+        <input type="text" id="voy" name="voy" placeholder="e.g. 2512N" required />
+        <div class="msg-err" data-for="voy">Please enter the Voy.</div>
       </div>
 
       <div class="field">
-        <label class="q" for="shipper">Shipper name (ชื่อผู้ส่งออก) <span class="star">*</span></label>
-        <input type="text" id="shipper" name="shipper" placeholder="เช่น ABC CO., LTD." required />
-        <div class="msg-err" data-for="shipper">กรุณากรอกชื่อ Shipper</div>
+        <label class="q" for="shipper">Shipper Name <span class="star">*</span></label>
+        <input type="text" id="shipper" name="shipper" placeholder="e.g. ABC CO., LTD." required />
+        <div class="msg-err" data-for="shipper">Please enter the Shipper name</div>
       </div>
 
       <div class="field">
-        <label class="q" for="pod">POD (ปลายทาง) <span class="star">*</span></label>
-        <input type="text" id="pod" name="pod" placeholder="เช่น SHANGHAI" required />
-        <div class="msg-err" data-for="pod">กรุณากรอก POD</div>
+        <label class="q" for="pod">POD <span class="star">*</span></label>
+        <input type="text" id="pod" name="pod" placeholder="e.g. SHANGHAI" required />
+        <div class="msg-err" data-for="pod">Please enter the POD</div>
       </div>
 
       <div class="field">
         <label class="q" for="booking">Booking No. <span class="star">*</span></label>
-        <input type="text" id="booking" name="booking" placeholder="เช่น HASLS22260100843" required />
-        <div class="msg-err" data-for="booking">กรุณากรอก Booking No.</div>
+        <input type="text" id="booking" name="booking" placeholder="e.g. HASLS22260100843" required />
+        <div class="msg-err" data-for="booking">Please enter the Booking No.</div>
       </div>
     </div>
 
-    <!-- ====== ส่วนที่ 2 : ตู้คอนเทนเนอร์ ====== -->
+    <!-- ====== Section 2: Containers ====== -->
     <div class="card section-title">
-      <h2>ข้อมูลตู้คอนเทนเนอร์ <span class="sub">เลือก SIZE แล้วกรอกเลขตู้ + STATUS F/E — กด “เพิ่มตู้” ได้หลายใบ</span></h2>
+      <h2>Container Information <span class="sub">Select SIZE, then enter the container number + STATUS F/E — click “+ Add Container” to add multiple</span></h2>
 
       <div id="cntrList" class="cntr-list"></div>
-      <div id="cntrEmpty" class="cntr-empty">ยังไม่มีข้อมูลตู้ — กดปุ่ม “＋ เพิ่มตู้” ด้านล่าง</div>
-      <div class="msg-err" data-for="rows">กรุณาเพิ่มข้อมูลตู้อย่างน้อย 1 ใบ</div>
+      <div id="cntrEmpty" class="cntr-empty">No containers added yet — click “+ Add Container” below</div>
+      <div class="msg-err" data-for="rows">Please add at least 1 container</div>
 
       <div class="toolbar">
-        <button type="button" class="btn-ghost" id="btnAdd">＋ เพิ่มตู้</button>
+        <button type="button" class="btn-ghost" id="btnAdd">+ Add Container</button>
       </div>
     </div>
 
     <div class="card section-title">
-      <h2>ข้อมูลเพิ่มเติม <span class="sub">Special Condition / ผู้ติดต่อ</span></h2>
+      <h2>Additional Information <span class="sub">Special Condition &amp; Contact</span></h2>
 
       <div class="field">
-        <label class="q" for="remark">Special Condition Request <span class="opt">(ถ้ามี)</span></label>
-        <textarea id="remark" rows="2" placeholder="เช่น Request container on deck"></textarea>
+        <label class="q" for="remark">Special Condition Request <span class="opt">(optional)</span></label>
+        <textarea id="remark" rows="2" placeholder="e.g. Request container on deck"></textarea>
       </div>
 
       <div class="field field-2col">
         <div>
-          <label class="q" for="contactName">ชื่อผู้ติดต่อ (Name) <span class="star">*</span></label>
-          <input type="text" id="contactName" placeholder="ชื่อ-นามสกุล" required />
-          <div class="msg-err" data-for="contactName">กรุณากรอกชื่อผู้ติดต่อ</div>
+          <label class="q" for="contactName">Contact Name <span class="star">*</span></label>
+          <input type="text" id="contactName" placeholder="Full name" required />
+          <div class="msg-err" data-for="contactName">Please enter the contact name</div>
         </div>
         <div>
-          <label class="q" for="contactPhone">เบอร์โทร (Phone) <span class="star">*</span></label>
+          <label class="q" for="contactPhone">Phone <span class="star">*</span></label>
           <input type="text" id="contactPhone" placeholder="0812345678" required />
-          <div class="msg-err" data-for="contactPhone">กรุณากรอกเบอร์โทร</div>
+          <div class="msg-err" data-for="contactPhone">Please enter the phone number</div>
         </div>
       </div>
       <div class="field">
-        <label class="q" for="contactEmail">อีเมล (Email) <span class="star">*</span></label>
+        <label class="q" for="contactEmail">Email <span class="star">*</span></label>
         <input type="text" id="contactEmail" placeholder="name@heungaline.co.th" required />
-        <div class="msg-err" data-for="contactEmail">กรุณากรอกอีเมลผู้ติดต่อ</div>
+        <div class="msg-err" data-for="contactEmail">Please enter the contact email</div>
       </div>
     </div>
 
     <div class="card">
       <label class="confirm-row">
         <input type="checkbox" id="confirmCheck" />
-        <span>ยืนยันว่าข้อมูลที่กรอกถูกต้อง ก่อนส่งอีเมลไปยังผู้เกี่ยวข้อง</span>
+        <span>I confirm the information entered is correct, before sending the email to the relevant parties</span>
       </label>
-      <div class="msg-err" data-for="confirm">กรุณากดยืนยันข้อมูลก่อนส่ง</div>
-      <button type="submit" class="btn-primary" id="btnSubmit">ส่งข้อมูล</button>
-      <button type="button" class="btn-text" id="btnReset" style="margin-left:8px">ล้างฟอร์ม</button>
+      <div class="msg-err" data-for="confirm">Please confirm before submitting</div>
+      <button type="submit" class="btn-primary" id="btnSubmit">Submit</button>
+      <button type="button" class="btn-text" id="btnReset" style="margin-left:8px">Clear Form</button>
     </div>
   </form>
 
@@ -308,66 +308,66 @@
 
 </div>
 
-<!-- ====== โมดัลเพิ่มตู้ ====== -->
+<!-- ====== Add Container Modal ====== -->
 <div class="modal-bg" id="modalBg">
   <div class="modal" role="dialog" aria-modal="true">
-    <h3 id="modalTitle">เพิ่มข้อมูลตู้</h3>
-    <p class="hint">เลือกขนาดตู้ แล้วกรอกเลขตู้และสถานะ</p>
+    <h3 id="modalTitle">Add Container</h3>
+    <p class="hint">Select the container size, then enter the container number and status</p>
 
     <div class="field">
       <label class="q" for="mSize">SIZE <span class="star">*</span></label>
-      <select id="mSize"><option value="" disabled selected>— เลือกขนาด —</option></select>
-      <div class="msg-err" data-for="mSize">กรุณาเลือก SIZE</div>
+      <select id="mSize"><option value="" disabled selected>— Select Size —</option></select>
+      <div class="msg-err" data-for="mSize">Please select SIZE</div>
     </div>
 
     <div class="field">
       <label class="q" for="mCntr">Container Number <span class="star">*</span></label>
-      <input type="text" id="mCntr" placeholder="เช่น HALU1234567" maxlength="20" />
-      <div class="msg-err" data-for="mCntr">กรุณากรอกเลขตู้ (รูปแบบ ABCD1234567)</div>
+      <input type="text" id="mCntr" placeholder="e.g. HALU1234567" maxlength="20" />
+      <div class="msg-err" data-for="mCntr">Please enter the container number (format ABCD1234567)</div>
     </div>
 
     <div class="field">
       <label class="q" for="mStatus">STATUS F/E <span class="star">*</span></label>
-      <select id="mStatus"><option value="" disabled selected>— เลือกสถานะ —</option></select>
-      <div class="msg-err" data-for="mStatus">กรุณาเลือกสถานะ</div>
+      <select id="mStatus"><option value="" disabled selected>— Select Status —</option></select>
+      <div class="msg-err" data-for="mStatus">Please select a status</div>
     </div>
 
     <div id="oversizeFields" class="field field-2col" style="display:none">
       <div>
-        <label class="q" for="mOverHeight">Over Height <span class="opt">(ถ้ามี)</span></label>
-        <input type="text" id="mOverHeight" placeholder="เช่น 290 CMS" />
+        <label class="q" for="mOverHeight">Over Height <span class="opt">(optional)</span></label>
+        <input type="text" id="mOverHeight" placeholder="e.g. 290 CMS" />
       </div>
       <div>
-        <label class="q" for="mOverWidth">Over Width <span class="opt">(ถ้ามี)</span></label>
-        <input type="text" id="mOverWidth" placeholder="เช่น 260 CMS" />
+        <label class="q" for="mOverWidth">Over Width <span class="opt">(optional)</span></label>
+        <input type="text" id="mOverWidth" placeholder="e.g. 260 CMS" />
       </div>
     </div>
 
     <div class="field">
-      <label class="q" for="mCommodity">Commodity <span class="opt">(ถ้ามี)</span></label>
-      <input type="text" id="mCommodity" placeholder="เช่น FROZEN SEAFOOD" />
+      <label class="q" for="mCommodity">Commodity <span class="opt">(optional)</span></label>
+      <input type="text" id="mCommodity" placeholder="e.g. FROZEN SEAFOOD" />
     </div>
     <div class="field">
       <label class="q" for="mTemp">Temperature <span class="opt">(For Reefer)</span></label>
-      <input type="text" id="mTemp" placeholder="เช่น -18℃" />
+      <input type="text" id="mTemp" placeholder="e.g. -18℃" />
     </div>
     <div class="field">
-      <label class="q" for="mHumidity">Humidity <span class="opt">(ถ้ามี)</span></label>
-      <input type="text" id="mHumidity" placeholder="เช่น 85%" />
+      <label class="q" for="mHumidity">Humidity <span class="opt">(optional)</span></label>
+      <input type="text" id="mHumidity" placeholder="e.g. 85%" />
     </div>
     <div class="field">
       <label class="q" for="mVent">Vent % <span class="opt">(For Reefer)</span></label>
-      <input type="text" id="mVent" placeholder="เช่น 15%" />
+      <input type="text" id="mVent" placeholder="e.g. 15%" />
     </div>
     <div class="field">
-      <label class="q" for="mDgUn">DG Class / UN Number <span class="opt">(ถ้ามี)</span></label>
-      <input type="text" id="mDgUn" placeholder="เช่น Class 9 / UN3082" />
+      <label class="q" for="mDgUn">DG Class / UN Number <span class="opt">(optional)</span></label>
+      <input type="text" id="mDgUn" placeholder="e.g. Class 9 / UN3082" />
     </div>
 
     <div class="actions">
-      <button type="button" class="btn-ghost" id="mCancel">ยกเลิก</button>
-      <button type="button" class="btn-primary" id="mConfirm" style="padding:12px 22px">＋ เพิ่มตู้</button>
-      <button type="button" class="btn-primary" id="mConfirmMore" style="padding:12px 22px;background:var(--blue-dark)">เพิ่มแล้วเพิ่มต่อ</button>
+      <button type="button" class="btn-ghost" id="mCancel">Cancel</button>
+      <button type="button" class="btn-primary" id="mConfirm" style="padding:12px 22px">Save</button>
+      <button type="button" class="btn-primary" id="mConfirmMore" style="padding:12px 22px;background:var(--blue-dark)">Save &amp; Add Container</button>
     </div>
   </div>
 </div>
@@ -422,10 +422,10 @@ async function loadConfig(){
     if(r.ok){ cfg = await r.json(); }
   }catch(e){ /* ใช้ fallback */ }
 
-  fillSelect($("#terminal"), cfg.terminals, "— เลือกท่า —");
-  fillSelect($("#vessel"), cfg.vessels, "— เลือกชื่อเรือ —");
-  fillSelect($("#mSize"), cfg.sizes, "— เลือกขนาด —");
-  fillSelect($("#mStatus"), cfg.statuses, "— เลือกสถานะ —");
+  fillSelect($("#terminal"), cfg.terminals, "— Select Terminal —");
+  fillSelect($("#vessel"), cfg.vessels, "— Select Vessel —");
+  fillSelect($("#mSize"), cfg.sizes, "— Select Size —");
+  fillSelect($("#mStatus"), cfg.statuses, "— Select Status —");
 }
 
 function fillSelect(sel, items, placeholder){
@@ -462,16 +462,16 @@ function openModal(index){
     $("#mHumidity").value = c.humidity||"";
     $("#mVent").value = c.vent||""; $("#mDgUn").value = c.dgUn||"";
     $("#mOverHeight").value = c.overHeight||""; $("#mOverWidth").value = c.overWidth||"";
-    $("#modalTitle").textContent = "แก้ไขข้อมูลตู้ #" + (editIndex+1);
+    $("#modalTitle").textContent = "Edit Container #" + (editIndex+1);
     $("#mConfirmMore").style.display = "none";
-    $("#mConfirm").textContent = "บันทึก";
+    $("#mConfirm").textContent = "Save";
   }else{
     $("#mSize").value = ""; $("#mCntr").value = ""; $("#mStatus").value = "";
     $("#mCommodity").value = ""; $("#mTemp").value = ""; $("#mHumidity").value = ""; $("#mVent").value = ""; $("#mDgUn").value = "";
     $("#mOverHeight").value = ""; $("#mOverWidth").value = "";
-    $("#modalTitle").textContent = "เพิ่มข้อมูลตู้";
+    $("#modalTitle").textContent = "Add Container";
     $("#mConfirmMore").style.display = "";
-    $("#mConfirm").textContent = "＋ เพิ่มตู้";
+    $("#mConfirm").textContent = "Save";
   }
   updateOversizeVisibility();
   m.classList.add("show");
@@ -540,8 +540,8 @@ function renderContainers(){
         '<div class="meta"><span class="badge">'+escapeHtml(c.size)+'</span>'+
         '<span class="badge '+cls+'">'+escapeHtml(st)+'</span>'+extra.join("")+'</div>'+
       '</div>'+
-      '<button type="button" class="btn-text" data-edit="'+i+'">แก้ไข</button>'+
-      '<button type="button" class="x" data-del="'+i+'" title="ลบ">&times;</button>';
+      '<button type="button" class="btn-text" data-edit="'+i+'">Edit</button>'+
+      '<button type="button" class="x" data-del="'+i+'" title="Delete">&times;</button>';
     list.appendChild(row);
   });
   $("#cntrEmpty").style.display = containers.length ? "none" : "block";
@@ -612,7 +612,7 @@ async function submitForm(ev){
   };
 
   const btn = $("#btnSubmit");
-  btn.disabled = true; btn.textContent = "กำลังส่งอีเมล...";
+  btn.disabled = true; btn.textContent = "Sending email...";
   try{
     const r = await fetch("/api/submit", {
       method:"POST",
@@ -624,12 +624,12 @@ async function submitForm(ev){
       showResult(data);
       window.scrollTo({top:document.body.scrollHeight, behavior:"smooth"});
     }else{
-      showResultError(data.error || "ส่งอีเมลไม่สำเร็จ");
+      showResultError(data.error || "Failed to send email");
     }
   }catch(e){
-    showResultError("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — ตรวจสอบว่ารัน run.py อยู่หรือไม่");
+    showResultError("Could not connect to the server — please check that run.py is running");
   }finally{
-    btn.disabled = false; btn.textContent = "ส่งข้อมูล";
+    btn.disabled = false; btn.textContent = "Submit";
   }
 }
 
@@ -639,9 +639,9 @@ function showResult(data){
   const toList = (data.to || []).map(escapeHtml).join(", ");
   $("#resultBox").innerHTML =
     '<div class="result">'+
-      '<h2>✓ ส่งอีเมลสำเร็จ</h2>'+
-      '<div>ส่งไฟล์ <span class="file">'+escapeHtml(data.out_file)+'</span> ไปที่: '+toList+'</div>'+
-      '<div>จำนวนตู้ที่ส่ง: '+data.rows+' ใบ</div>'+
+      '<h2>✓ Email sent successfully</h2>'+
+      '<div>Sent file <span class="file">'+escapeHtml(data.out_file)+'</span> to: '+toList+'</div>'+
+      '<div>Containers sent: '+data.rows+'</div>'+
       warn+
     '</div>';
 }
@@ -649,7 +649,7 @@ function showResult(data){
 function showResultError(msg){
   $("#resultBox").innerHTML =
     '<div class="result" style="background:#fce8e6;border-color:#f3b8b2">'+
-      '<h2 style="color:#c5221f">✕ เกิดข้อผิดพลาด</h2>'+
+      '<h2 style="color:#c5221f">✕ An error occurred</h2>'+
       '<div>'+escapeHtml(msg)+'</div>'+
     '</div>';
 }
@@ -676,7 +676,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#form").addEventListener("submit", submitForm);
   $("#btnAdd").addEventListener("click", ()=>openModal(-1));
   $("#btnReset").addEventListener("click", ()=>{
-    if(!confirm("ล้างข้อมูลทั้งหมดในฟอร์ม?")) return;
+    if(!confirm("Clear all form data?")) return;
     $("#form").reset();
     containers = [];
     renderContainers();

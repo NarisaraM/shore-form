@@ -278,18 +278,18 @@ def fill(payload: Dict, base_dir: str, cache_dir: str, out_dir: str) -> Dict:
     """
     terminal = (payload.get("terminal") or "").strip()
     if terminal not in TERMINALS:
-        return {"ok": False, "error": f"ไม่รู้จัก TERMINAL: {terminal!r}", "warnings": []}
+        return {"ok": False, "error": f"Unknown TERMINAL: {terminal!r}", "warnings": []}
 
     conf = TERMINALS[terminal]
     rows = build_record_rows(payload)
     if not rows:
-        return {"ok": False, "error": "ยังไม่มีข้อมูลตู้ (rows ว่าง)", "warnings": []}
+        return {"ok": False, "error": "No container data (rows is empty)", "warnings": []}
 
     warnings: List[str] = []
 
     src_path = os.path.join(base_dir, conf["src"])
     if not os.path.isfile(src_path):
-        return {"ok": False, "error": f"ไม่พบไฟล์แม่แบบ {conf['src']}", "warnings": []}
+        return {"ok": False, "error": f"Template file not found: {conf['src']}", "warnings": []}
 
     template_xlsx = ensure_xlsx(src_path, cache_dir)
     wb = openpyxl.load_workbook(template_xlsx)
@@ -297,7 +297,7 @@ def fill(payload: Dict, base_dir: str, cache_dir: str, out_dir: str) -> Dict:
     sheet_name = conf["sheet"]
     ws = wb[sheet_name] if sheet_name in wb.sheetnames else wb.active
     if sheet_name not in wb.sheetnames:
-        warnings.append(f"ไม่พบชีต {sheet_name!r} ใช้ชีต {ws.title!r} แทน")
+        warnings.append(f"Sheet {sheet_name!r} not found, using sheet {ws.title!r} instead")
 
     # ---- ส่วนหัว: Vessel / Voy. / Shipper / POD / Booking / ผู้ติดต่อ / เวลาที่ส่ง ----
     # (vessel_voy = ช่องที่ผสาน Vessel+Voy ไว้ด้วยกัน เขียนเป็น "M.V. {vessel} V.{voy}")
@@ -364,7 +364,7 @@ def fill(payload: Dict, base_dir: str, cache_dir: str, out_dir: str) -> Dict:
         excel_row = start + i
         if i >= max_rows:
             warnings.append(
-                f"แม่แบบรองรับสูงสุด {max_rows} ตู้ ตู้ที่ {i + 1} เป็นต้นไปไม่ได้ถูกเขียน"
+                f"This template supports up to {max_rows} containers; container #{i + 1} onward was not written"
             )
             break
 
@@ -393,7 +393,7 @@ def fill(payload: Dict, base_dir: str, cache_dir: str, out_dir: str) -> Dict:
         stem, ext = os.path.splitext(conf["out"])
         out_path = os.path.join(out_dir, f"{stem}_{stamp}{ext}")
         wb.save(out_path)
-        warnings.append("ไฟล์เดิมเปิดค้างอยู่ จึงบันทึกเป็นชื่อใหม่")
+        warnings.append("The original file is still open elsewhere, so this was saved under a new name")
 
     return {
         "ok": True,

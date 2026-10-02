@@ -91,7 +91,7 @@ def main():
         'const EMAIL_RECIPIENTS = ["dongykong.naris@gmail.com", "sirichai@heungaline.co.th"];\n'
         "function buildMailBody(payload, rows, outFile, warnings){\n"
         "  const lines = [\n"
-        '    "มีการส่งข้อมูล SHORE ใหม่ผ่านระบบแบบฟอร์มสำรวจข้อมูล (Self Service Shore)",\n'
+        '    "A new SHORE submission has been sent via the Self Service Shore form",\n'
         '    "",\n'
         '    "TERMINAL      : "+payload.terminal,\n'
         '    "Vessel / Voy. : "+payload.vessel+" V."+payload.voy,\n'
@@ -99,7 +99,7 @@ def main():
         '    "POD           : "+payload.pod,\n'
         '    "Booking No.   : "+payload.booking,\n'
         '    "",\n'
-        '    "จำนวนตู้ ("+payload.rows.length+" ใบ):"\n'
+        '    "Containers ("+payload.rows.length+"):"\n'
         "  ];\n"
         "  payload.rows.forEach((r,i)=>{\n"
         "    const extra = [];\n"
@@ -115,10 +115,10 @@ def main():
         "  });\n"
         '  const contactLine = "Contact: "+(payload.contactName||"")+" "+(payload.contactPhone||"")+\n'
         '    ((payload.contactEmail||"") ? " "+payload.contactEmail : "");\n'
-        '  lines.push("", "ผู้ติดต่อ: "+contactLine);\n'
+        '  lines.push("", contactLine);\n'
         '  if(payload.remark) lines.push("Special Condition Request: "+payload.remark);\n'
-        '  if(warnings && warnings.length) lines.push("", "หมายเหตุ:", ...warnings.map(w=>"  - "+w));\n'
-        '  lines.push("", "ไฟล์แนบ: "+outFile);\n'
+        '  if(warnings && warnings.length) lines.push("", "Notes:", ...warnings.map(w=>"  - "+w));\n'
+        '  lines.push("", "Attachment: "+outFile);\n'
         "  return lines.join(\"\\n\");\n"
         "}\n"
         "</script>\n"
@@ -193,12 +193,12 @@ def main():
     # ---- 5) แก้ loadTemplateBytes ให้อ่านจาก TEMPLATES_B64 (ฝังในไฟล์) แทน fetch ----
     old_fill = '''async function loadTemplateBytes(conf){
   const res = await fetch(conf.tpl, {cache:"no-store"});
-  if(!res.ok) throw new Error("โหลดไฟล์แม่แบบไม่ได้: " + conf.tpl + " (HTTP " + res.status + ")");
+  if(!res.ok) throw new Error("Could not load template file: " + conf.tpl + " (HTTP " + res.status + ")");
   return res.arrayBuffer();
 }'''
     new_fill = '''async function loadTemplateBytes(conf){
   const b64 = TEMPLATES_B64[conf.key];
-  if(!b64) throw new Error("ไม่พบไฟล์แม่แบบที่ฝังไว้: " + conf.key);
+  if(!b64) throw new Error("Embedded template file not found: " + conf.key);
   return b64ToArrayBuffer(b64);
 }'''
     assert old_fill in body_inner, "หา loadTemplateBytes เดิมไม่เจอ"
@@ -236,17 +236,17 @@ def main():
    ทดสอบรูปแบบคำขอ/ไฟล์แนบจริงแล้วก่อนขึ้นระบบ (ผ่าน create_draft แบบไม่ส่งจริง) */
 const GMAIL_TOOL = "send_message";
 const GMAIL_ERROR_COPY = {
-  needs_reauth:        "บัญชี Gmail ของคุณต้องเชื่อมต่อใหม่ (ไปที่ Settings → Connectors ใน claude.ai)",
-  server_not_connected:"ยังไม่ได้เชื่อมต่อ Gmail กับบัญชี Claude ของคุณ (ไปที่ Settings → Connectors)",
-  selection_required:  "มีหลายบัญชี Gmail เชื่อมต่ออยู่ กรุณาเลือกบัญชีในกล่องที่เด้งขึ้น แล้วกดส่งข้อมูลอีกครั้ง",
-  not_in_manifest:      "หน้านี้ยังไม่ได้รับอนุญาตให้ใช้ Gmail",
-  consent_required:     "คุณยังไม่อนุญาตให้หน้านี้ใช้ Gmail กดส่งข้อมูลอีกครั้งเพื่อขออนุญาต",
-  blocked_by_policy:    "องค์กรของคุณปิดการใช้ Gmail จากหน้านี้ไว้",
-  approval_required:    "อีเมลนี้ต้องขออนุมัติก่อนส่ง (นโยบายองค์กร)",
-  tool_error:           "Gmail รายงานว่าส่งไม่สำเร็จ",
-  cancelled:            "การส่งอีเมลถูกยกเลิกกลางคัน (ไม่แน่ใจว่าส่งไปแล้วหรือไม่ กรุณาตรวจ Gmail ก่อนส่งซ้ำ)",
-  not_granted:          "หน้านี้ไม่ได้รับสิทธิ์ใช้ตัวเชื่อมต่อ",
-  capability_disabled:  "ระบบเชื่อมต่อใช้ไม่ได้ในหน้านี้ขณะนี้",
+  needs_reauth:        "Your Gmail account needs to be reconnected (go to Settings → Connectors on claude.ai)",
+  server_not_connected:"Gmail is not connected to your Claude account (go to Settings → Connectors)",
+  selection_required:  "Multiple Gmail accounts are connected — please choose one in the popup and submit again",
+  not_in_manifest:      "This page has not been authorized to use Gmail",
+  consent_required:     "You have not authorized this page to use Gmail — submit again to request permission",
+  blocked_by_policy:    "Your organization has disabled Gmail access from this page",
+  approval_required:    "This email requires approval before sending (organization policy)",
+  tool_error:           "Gmail reported that the send failed",
+  cancelled:            "Email sending was cancelled midway (it's unclear whether it sent — please check Gmail before retrying)",
+  not_granted:          "This page does not have permission to use the connector",
+  capability_disabled:  "The connector is not available on this page right now",
 };
 function arrayBufferToB64(buf){
   const bytes = new Uint8Array(buf);
@@ -274,7 +274,7 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
     return {ok:true, payload: res.payload};
   }catch(e){
     const code = e && e.code;
-    return {ok:false, reason: GMAIL_ERROR_COPY[code] || ("Gmail ส่งไม่สำเร็จ (" + (code || "unknown") + ")")};
+    return {ok:false, reason: GMAIL_ERROR_COPY[code] || ("Gmail send failed (" + (code || "unknown") + ")")};
   }
 }'''
     assert old_trigger in body_inner, "หา triggerDownload เดิมไม่เจอ"
@@ -282,7 +282,7 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
 
     # ---- 7) submitForm: ลองส่งผ่าน Gmail ก่อน ถ้าไม่สำเร็จค่อย saveFile สำรอง ----
     old_submit = '''  const btn = $("#btnSubmit");
-  btn.disabled = true; btn.textContent = "กำลังสร้างไฟล์…";
+  btn.disabled = true; btn.textContent = "Generating file…";
   try{
     const rows = buildRows(payload);
     const { buf, written, warnings } = await fillTemplate(conf, rows);
@@ -293,14 +293,14 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
     console.error(e);
     let msg = e.message || String(e);
     if(/Failed to fetch|NetworkError|HTTP 0/i.test(msg))
-      msg = "โหลดไฟล์แม่แบบไม่ได้ — ต้องเปิดหน้านี้ผ่าน http/https (GitHub Pages หรือ `python -m http.server`) ไม่ใช่ดับเบิลคลิกไฟล์";
+      msg = "Could not load the template file — this page must be opened via http/https (GitHub Pages or `python -m http.server`), not by double-clicking the file";
     showResultError(msg);
   }finally{
-    btn.disabled = false; btn.textContent = "ส่งข้อมูล";
+    btn.disabled = false; btn.textContent = "Submit";
   }
 }'''
     new_submit = '''  const btn = $("#btnSubmit");
-  btn.disabled = true; btn.textContent = "กำลังสร้างไฟล์…";
+  btn.disabled = true; btn.textContent = "Generating file…";
   try{
     const rows = buildRows(payload);
     const { buf, written, warnings } = await fillTemplate(conf, rows);
@@ -308,7 +308,7 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
     const subject = "[SHORE] "+conf.key+" - "+payload.vessel+" V."+payload.voy+" - Booking "+payload.booking;
     const bodyText = buildMailBody(payload, rows, conf.out, warnings);
 
-    btn.textContent = "กำลังส่งอีเมลผ่าน Gmail…";
+    btn.textContent = "Sending email via Gmail…";
     const gmail = await tryGmailSend(buf, conf.out, EMAIL_RECIPIENTS, subject, bodyText);
     if(gmail.ok){
       showResultGmailSent(conf.out, written, warnings);
@@ -316,14 +316,14 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
       return;
     }
 
-    // Gmail ส่งไม่สำเร็จ (หรือไม่ได้รันใน Artifact ที่มี capability นี้) -> สำรอง: บันทึกไฟล์
-    btn.textContent = "กำลังบันทึกไฟล์…";
+    // Gmail send failed (or not running in an Artifact with this capability) -> fallback: save file
+    btn.textContent = "Saving file…";
     let saveStatus;
     try{
       saveStatus = await saveFile(buf, conf.out);
     }catch(e){
       if(e && e.code === "declined"){
-        showResultError("ยกเลิกการบันทึกไฟล์แล้ว — ข้อมูลยังอยู่ในฟอร์ม กดส่งข้อมูลอีกครั้งเมื่อพร้อม");
+        showResultError("File save cancelled — your data is still in the form; submit again when ready");
         return;
       }
       throw e;
@@ -334,13 +334,13 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
     console.error(e);
     let msg = e.message || String(e);
     if(/Failed to fetch|NetworkError|HTTP 0/i.test(msg))
-      msg = "โหลดไฟล์แม่แบบไม่ได้ — ต้องเปิดหน้านี้ผ่าน http/https (GitHub Pages หรือ `python -m http.server`) ไม่ใช่ดับเบิลคลิกไฟล์";
+      msg = "Could not load the template file — this page must be opened via http/https (GitHub Pages or `python -m http.server`), not by double-clicking the file";
     showResultError(msg);
   }finally{
-    btn.disabled = false; btn.textContent = "ส่งข้อมูล";
+    btn.disabled = false; btn.textContent = "Submit";
   }
 }'''
-    assert old_submit in body_inner, "หา submitForm เดิมไม่เจอ"
+    assert old_submit in body_inner, "old submitForm not found"
     body_inner = body_inner.replace(old_submit, new_submit)
 
     # ---- 8) showResult: เพิ่ม showResultGmailSent + ปรับ showResult ให้ตรงกับ "บันทึกไฟล์" สำรอง ----
@@ -349,11 +349,11 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
     ? '<ul>'+warnings.map(w=>'<li>'+escapeHtml(w)+'</li>').join("")+'</ul>' : "";
   $("#resultBox").innerHTML =
     '<div class="result">'+
-      '<h2>✓ บันทึกไฟล์สำเร็จ</h2>'+
-      '<div>ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกดาวน์โหลดไว้ในเครื่องแล้ว</div>'+
-      '<div>จำนวนตู้: '+rows+' ใบ</div>'+ warn +
+      '<h2>✓ File saved successfully</h2>'+
+      '<div>File <span class="file">'+escapeHtml(outFile)+'</span> has been downloaded to your device</div>'+
+      '<div>Containers: '+rows+'</div>'+ warn +
       '<div style="margin-top:10px;color:var(--muted);font-size:13px">'+
-      'นำไฟล์นี้ไปส่งต่อ/แนบอีเมลให้ท่าเรือหรือเอเย่นต์ตามขั้นตอนของท่านได้เลย'+
+      'You can now forward or email this file to the terminal or agent as needed'+
       '</div>'+
     '</div>';
 }'''
@@ -363,9 +363,9 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
   const toList = EMAIL_RECIPIENTS.map(escapeHtml).join(", ");
   $("#resultBox").innerHTML =
     '<div class="result">'+
-      '<h2>✓ ส่งอีเมลสำเร็จผ่าน Gmail ของคุณ</h2>'+
-      '<div>ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกส่งไปที่ '+toList+' เรียบร้อยแล้ว</div>'+
-      '<div>จำนวนตู้: '+rows+' ใบ</div>'+ warn +
+      '<h2>✓ Email sent successfully via your Gmail</h2>'+
+      '<div>File <span class="file">'+escapeHtml(outFile)+'</span> has been sent to '+toList+'</div>'+
+      '<div>Containers: '+rows+'</div>'+ warn +
     '</div>';
 }
 function showResult(outFile, rows, warnings, saveStatus, gmailReason){
@@ -373,22 +373,22 @@ function showResult(outFile, rows, warnings, saveStatus, gmailReason){
     ? '<ul>'+warnings.map(w=>'<li>'+escapeHtml(w)+'</li>').join("")+'</ul>' : "";
   const toList = EMAIL_RECIPIENTS.map(escapeHtml).join(", ");
   const savedLine = saveStatus === "delivered"
-    ? 'ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกส่งไปยังปลายทางที่คุณเลือกแล้ว'
-    : 'ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกบันทึกไว้แล้ว';
+    ? 'File <span class="file">'+escapeHtml(outFile)+'</span> has been sent to your selected destination'
+    : 'File <span class="file">'+escapeHtml(outFile)+'</span> has been saved';
   const gmailLine = gmailReason
-    ? '<li>ส่งผ่าน Gmail อัตโนมัติไม่สำเร็จ: '+escapeHtml(gmailReason)+' — ผู้รับที่ตั้งใจส่ง: '+toList+'</li>'
+    ? '<li>Automatic Gmail sending failed: '+escapeHtml(gmailReason)+' — intended recipients: '+toList+'</li>'
     : '';
   $("#resultBox").innerHTML =
     '<div class="result">'+
-      '<h2>✓ บันทึกไฟล์สำเร็จ</h2>'+
+      '<h2>✓ File saved successfully</h2>'+
       '<div>'+savedLine+'</div>'+
-      '<div>จำนวนตู้: '+rows+' ใบ</div>'+ warn +
+      '<div>Containers: '+rows+'</div>'+ warn +
       '<ul>'+gmailLine+
-      '<li>นำไฟล์นี้ไปส่งต่อ/แนบอีเมลให้ท่าเรือหรือเอเย่นต์ตามขั้นตอนของท่านได้เลย</li>'+
+      '<li>You can now forward or email this file to the terminal or agent as needed</li>'+
       '</ul>'+
     '</div>';
 }'''
-    assert old_result in body_inner, "หา showResult เดิมไม่เจอ"
+    assert old_result in body_inner, "old showResult not found"
     body_inner = body_inner.replace(old_result, new_result)
 
     # ---- 9) ประกอบไฟล์สุดท้าย ----

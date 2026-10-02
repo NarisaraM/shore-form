@@ -101,13 +101,13 @@ def send_excel_email(
     cfg = _load_config(base_dir)
     if not (cfg.get("host") and cfg.get("username") and cfg.get("password") and cfg.get("from_addr")):
         raise RuntimeError(
-            "ยังไม่ได้ตั้งค่าการส่งอีเมล (SMTP) — คัดลอก smtp_config.example.json "
-            "เป็น smtp_config.json แล้วกรอกข้อมูลบัญชีที่ใช้ส่งให้ครบ (ดู README.md)"
+            "Email sending (SMTP) has not been configured yet — copy smtp_config.example.json "
+            "to smtp_config.json and fill in the sending account details (see README.md)"
         )
     if not to_list:
-        raise RuntimeError("ไม่มีผู้รับอีเมล (to_list ว่าง)")
+        raise RuntimeError("No email recipients (to_list is empty)")
     if not os.path.isfile(attachment_path):
-        raise RuntimeError(f"ไม่พบไฟล์ที่จะแนบ: {attachment_path}")
+        raise RuntimeError(f"Attachment file not found: {attachment_path}")
 
     msg = EmailMessage()
     msg["Subject"] = subject
@@ -140,4 +140,4 @@ def send_excel_email(
                 server.login(cfg["username"], cfg["password"])
                 server.send_message(msg, to_addrs=all_rcpt)
     except Exception as exc:
-        raise RuntimeError(f"ส่งอีเมลไม่สำเร็จ: {exc}") from exc
+        raise RuntimeError(f"Failed to send email: {exc}") from exc

@@ -130,7 +130,7 @@ function b64ToArrayBuffer(b64){
 const EMAIL_RECIPIENTS = ["dongykong.naris@gmail.com", "sirichai@heungaline.co.th"];
 function buildMailBody(payload, rows, outFile, warnings){
   const lines = [
-    "มีการส่งข้อมูล SHORE ใหม่ผ่านระบบแบบฟอร์มสำรวจข้อมูล (Self Service Shore)",
+    "A new SHORE submission has been sent via the Self Service Shore form",
     "",
     "TERMINAL      : "+payload.terminal,
     "Vessel / Voy. : "+payload.vessel+" V."+payload.voy,
@@ -138,7 +138,7 @@ function buildMailBody(payload, rows, outFile, warnings){
     "POD           : "+payload.pod,
     "Booking No.   : "+payload.booking,
     "",
-    "จำนวนตู้ ("+payload.rows.length+" ใบ):"
+    "Containers ("+payload.rows.length+"):"
   ];
   payload.rows.forEach((r,i)=>{
     const extra = [];
@@ -154,10 +154,10 @@ function buildMailBody(payload, rows, outFile, warnings){
   });
   const contactLine = "Contact: "+(payload.contactName||"")+" "+(payload.contactPhone||"")+
     ((payload.contactEmail||"") ? " "+payload.contactEmail : "");
-  lines.push("", "ผู้ติดต่อ: "+contactLine);
+  lines.push("", contactLine);
   if(payload.remark) lines.push("Special Condition Request: "+payload.remark);
-  if(warnings && warnings.length) lines.push("", "หมายเหตุ:", ...warnings.map(w=>"  - "+w));
-  lines.push("", "ไฟล์แนบ: "+outFile);
+  if(warnings && warnings.length) lines.push("", "Notes:", ...warnings.map(w=>"  - "+w));
+  lines.push("", "Attachment: "+outFile);
   return lines.join("\n");
 }
 </script>
@@ -173,97 +173,97 @@ function buildMailBody(payload, rows, outFile, warnings){
         <div id="liveClock" class="live-clock"></div>
       </div>
     </div>
-    <div class="req-note">* จำเป็นต้องกรอก</div>
+    <div class="req-note">* Required</div>
   </div>
 
   <form id="form" autocomplete="off">
     <div class="card section-title">
-      <h2>ข้อมูลการจอง <span class="sub">Booking / Vessel Information</span></h2>
+      <h2>Booking Information <span class="sub">Terminal &amp; Vessel Details</span></h2>
 
       <div class="field">
         <label class="q" for="terminal">TERMINAL <span class="star">*</span></label>
         <select id="terminal" name="terminal" required>
-          <option value="" disabled selected>— เลือกท่า —</option>
+          <option value="" disabled selected>— Select Terminal —</option>
         </select>
-        <div class="msg-err" data-for="terminal">กรุณาเลือก TERMINAL</div>
+        <div class="msg-err" data-for="terminal">Please select a TERMINAL</div>
       </div>
 
       <div class="field">
-        <label class="q" for="vessel">Vessel (ชื่อเรือ) <span class="star">*</span></label>
+        <label class="q" for="vessel">Vessel <span class="star">*</span></label>
         <select id="vessel" name="vessel" required>
-          <option value="" disabled selected>— เลือกชื่อเรือ —</option>
+          <option value="" disabled selected>— Select Vessel —</option>
         </select>
-        <div class="msg-err" data-for="vessel">กรุณาเลือกชื่อเรือ</div>
+        <div class="msg-err" data-for="vessel">Please select a vessel</div>
       </div>
 
       <div class="field">
-        <label class="q" for="voy">Voy. (เที่ยวเรือ) <span class="star">*</span></label>
-        <input type="text" id="voy" name="voy" placeholder="เช่น 2512N" required />
-        <div class="msg-err" data-for="voy">กรุณากรอก Voy.</div>
+        <label class="q" for="voy">Voy. <span class="star">*</span></label>
+        <input type="text" id="voy" name="voy" placeholder="e.g. 2512N" required />
+        <div class="msg-err" data-for="voy">Please enter the Voy.</div>
       </div>
 
       <div class="field">
-        <label class="q" for="shipper">Shipper name (ชื่อผู้ส่งออก) <span class="star">*</span></label>
-        <input type="text" id="shipper" name="shipper" placeholder="เช่น ABC CO., LTD." required />
-        <div class="msg-err" data-for="shipper">กรุณากรอกชื่อ Shipper</div>
+        <label class="q" for="shipper">Shipper Name <span class="star">*</span></label>
+        <input type="text" id="shipper" name="shipper" placeholder="e.g. ABC CO., LTD." required />
+        <div class="msg-err" data-for="shipper">Please enter the Shipper name</div>
       </div>
 
       <div class="field">
-        <label class="q" for="pod">POD (ปลายทาง) <span class="star">*</span></label>
-        <input type="text" id="pod" name="pod" placeholder="เช่น SHANGHAI" required />
-        <div class="msg-err" data-for="pod">กรุณากรอก POD</div>
+        <label class="q" for="pod">POD <span class="star">*</span></label>
+        <input type="text" id="pod" name="pod" placeholder="e.g. SHANGHAI" required />
+        <div class="msg-err" data-for="pod">Please enter the POD</div>
       </div>
 
       <div class="field">
         <label class="q" for="booking">Booking No. <span class="star">*</span></label>
-        <input type="text" id="booking" name="booking" placeholder="เช่น HASLS22260100843" required />
-        <div class="msg-err" data-for="booking">กรุณากรอก Booking No.</div>
+        <input type="text" id="booking" name="booking" placeholder="e.g. HASLS22260100843" required />
+        <div class="msg-err" data-for="booking">Please enter the Booking No.</div>
       </div>
     </div>
 
     <div class="card section-title">
-      <h2>ข้อมูลตู้คอนเทนเนอร์ <span class="sub">เลือก SIZE แล้วกรอกเลขตู้ + STATUS F/E — กด “เพิ่มตู้” ได้หลายใบ</span></h2>
+      <h2>Container Information <span class="sub">Select SIZE, then enter the container number + STATUS F/E — click “+ Add Container” to add multiple</span></h2>
       <div id="cntrList" class="cntr-list"></div>
-      <div id="cntrEmpty" class="cntr-empty">ยังไม่มีข้อมูลตู้ — กดปุ่ม “＋ เพิ่มตู้” ด้านล่าง</div>
-      <div class="msg-err" data-for="rows">กรุณาเพิ่มข้อมูลตู้อย่างน้อย 1 ใบ</div>
-      <div class="toolbar"><button type="button" class="btn-ghost" id="btnAdd">＋ เพิ่มตู้</button></div>
+      <div id="cntrEmpty" class="cntr-empty">No containers added yet — click “+ Add Container” below</div>
+      <div class="msg-err" data-for="rows">Please add at least 1 container</div>
+      <div class="toolbar"><button type="button" class="btn-ghost" id="btnAdd">+ Add Container</button></div>
     </div>
 
     <div class="card section-title">
-      <h2>ข้อมูลเพิ่มเติม <span class="sub">Special Condition / ผู้ติดต่อ</span></h2>
+      <h2>Additional Information <span class="sub">Special Condition &amp; Contact</span></h2>
 
       <div class="field">
-        <label class="q" for="remark">Special Condition Request <span class="opt">(ถ้ามี)</span></label>
-        <textarea id="remark" rows="2" placeholder="เช่น Request container on deck"></textarea>
+        <label class="q" for="remark">Special Condition Request <span class="opt">(optional)</span></label>
+        <textarea id="remark" rows="2" placeholder="e.g. Request container on deck"></textarea>
       </div>
 
       <div class="field field-2col">
         <div>
-          <label class="q" for="contactName">ชื่อผู้ติดต่อ (Name) <span class="star">*</span></label>
-          <input type="text" id="contactName" placeholder="ชื่อ-นามสกุล" required />
-          <div class="msg-err" data-for="contactName">กรุณากรอกชื่อผู้ติดต่อ</div>
+          <label class="q" for="contactName">Contact Name <span class="star">*</span></label>
+          <input type="text" id="contactName" placeholder="Full name" required />
+          <div class="msg-err" data-for="contactName">Please enter the contact name</div>
         </div>
         <div>
-          <label class="q" for="contactPhone">เบอร์โทร (Phone) <span class="star">*</span></label>
+          <label class="q" for="contactPhone">Phone <span class="star">*</span></label>
           <input type="text" id="contactPhone" placeholder="0812345678" required />
-          <div class="msg-err" data-for="contactPhone">กรุณากรอกเบอร์โทร</div>
+          <div class="msg-err" data-for="contactPhone">Please enter the phone number</div>
         </div>
       </div>
       <div class="field">
-        <label class="q" for="contactEmail">อีเมล (Email) <span class="star">*</span></label>
+        <label class="q" for="contactEmail">Email <span class="star">*</span></label>
         <input type="text" id="contactEmail" placeholder="name@heungaline.co.th" required />
-        <div class="msg-err" data-for="contactEmail">กรุณากรอกอีเมลผู้ติดต่อ</div>
+        <div class="msg-err" data-for="contactEmail">Please enter the contact email</div>
       </div>
     </div>
 
     <div class="card">
       <label class="confirm-row">
         <input type="checkbox" id="confirmCheck" />
-        <span>ยืนยันว่าข้อมูลที่กรอกถูกต้อง และจะนำไฟล์นี้ไปยื่นยืนยันกับท่าเรือ/เอเย่นต์ตามขั้นตอนต่อไป</span>
+        <span>I confirm the information entered is correct, and will bring this file to re-confirm with the terminal/agent as the next step</span>
       </label>
-      <div class="msg-err" data-for="confirm">กรุณากดยืนยันข้อมูลก่อนส่ง</div>
-      <button type="submit" class="btn-primary" id="btnSubmit">ส่งข้อมูล</button>
-      <button type="button" class="btn-text" id="btnReset" style="margin-left:8px">ล้างฟอร์ม</button>
+      <div class="msg-err" data-for="confirm">Please confirm before submitting</div>
+      <button type="submit" class="btn-primary" id="btnSubmit">Submit</button>
+      <button type="button" class="btn-text" id="btnReset" style="margin-left:8px">Clear Form</button>
     </div>
   </form>
 
@@ -272,57 +272,57 @@ function buildMailBody(payload, rows, outFile, warnings){
 
 <div class="modal-bg" id="modalBg">
   <div class="modal" role="dialog" aria-modal="true">
-    <h3 id="modalTitle">เพิ่มข้อมูลตู้</h3>
-    <p class="hint">เลือกขนาดตู้ แล้วกรอกเลขตู้และสถานะ</p>
+    <h3 id="modalTitle">Add Container</h3>
+    <p class="hint">Select the container size, then enter the container number and status</p>
     <div class="field">
       <label class="q" for="mSize">SIZE <span class="star">*</span></label>
-      <select id="mSize"><option value="" disabled selected>— เลือกขนาด —</option></select>
-      <div class="msg-err" data-for="mSize">กรุณาเลือก SIZE</div>
+      <select id="mSize"><option value="" disabled selected>— Select Size —</option></select>
+      <div class="msg-err" data-for="mSize">Please select SIZE</div>
     </div>
     <div class="field">
       <label class="q" for="mCntr">Container Number <span class="star">*</span></label>
-      <input type="text" id="mCntr" placeholder="เช่น HALU1234567" maxlength="20" />
-      <div class="msg-err" data-for="mCntr">กรุณากรอกเลขตู้ (รูปแบบ ABCD1234567)</div>
+      <input type="text" id="mCntr" placeholder="e.g. HALU1234567" maxlength="20" />
+      <div class="msg-err" data-for="mCntr">Please enter the container number (format ABCD1234567)</div>
     </div>
     <div class="field">
       <label class="q" for="mStatus">STATUS F/E <span class="star">*</span></label>
-      <select id="mStatus"><option value="" disabled selected>— เลือกสถานะ —</option></select>
-      <div class="msg-err" data-for="mStatus">กรุณาเลือกสถานะ</div>
+      <select id="mStatus"><option value="" disabled selected>— Select Status —</option></select>
+      <div class="msg-err" data-for="mStatus">Please select a status</div>
     </div>
     <div id="oversizeFields" class="field field-2col" style="display:none">
       <div>
-        <label class="q" for="mOverHeight">Over Height <span class="opt">(ถ้ามี)</span></label>
-        <input type="text" id="mOverHeight" placeholder="เช่น 290 CMS" />
+        <label class="q" for="mOverHeight">Over Height <span class="opt">(optional)</span></label>
+        <input type="text" id="mOverHeight" placeholder="e.g. 290 CMS" />
       </div>
       <div>
-        <label class="q" for="mOverWidth">Over Width <span class="opt">(ถ้ามี)</span></label>
-        <input type="text" id="mOverWidth" placeholder="เช่น 260 CMS" />
+        <label class="q" for="mOverWidth">Over Width <span class="opt">(optional)</span></label>
+        <input type="text" id="mOverWidth" placeholder="e.g. 260 CMS" />
       </div>
     </div>
     <div class="field">
-      <label class="q" for="mCommodity">Commodity <span class="opt">(ถ้ามี)</span></label>
-      <input type="text" id="mCommodity" placeholder="เช่น FROZEN SEAFOOD" />
+      <label class="q" for="mCommodity">Commodity <span class="opt">(optional)</span></label>
+      <input type="text" id="mCommodity" placeholder="e.g. FROZEN SEAFOOD" />
     </div>
     <div class="field">
       <label class="q" for="mTemp">Temperature <span class="opt">(For Reefer)</span></label>
-      <input type="text" id="mTemp" placeholder="เช่น -18℃" />
+      <input type="text" id="mTemp" placeholder="e.g. -18℃" />
     </div>
     <div class="field">
-      <label class="q" for="mHumidity">Humidity <span class="opt">(ถ้ามี)</span></label>
-      <input type="text" id="mHumidity" placeholder="เช่น 85%" />
+      <label class="q" for="mHumidity">Humidity <span class="opt">(optional)</span></label>
+      <input type="text" id="mHumidity" placeholder="e.g. 85%" />
     </div>
     <div class="field">
       <label class="q" for="mVent">Vent % <span class="opt">(For Reefer)</span></label>
-      <input type="text" id="mVent" placeholder="เช่น 15%" />
+      <input type="text" id="mVent" placeholder="e.g. 15%" />
     </div>
     <div class="field">
-      <label class="q" for="mDgUn">DG Class / UN Number <span class="opt">(ถ้ามี)</span></label>
-      <input type="text" id="mDgUn" placeholder="เช่น Class 9 / UN3082" />
+      <label class="q" for="mDgUn">DG Class / UN Number <span class="opt">(optional)</span></label>
+      <input type="text" id="mDgUn" placeholder="e.g. Class 9 / UN3082" />
     </div>
     <div class="actions">
-      <button type="button" class="btn-ghost" id="mCancel">ยกเลิก</button>
-      <button type="button" class="btn-primary" id="mConfirm" style="padding:12px 22px">＋ เพิ่มตู้</button>
-      <button type="button" class="btn-primary" id="mConfirmMore" style="padding:12px 22px;background:var(--blue-dark)">เพิ่มแล้วเพิ่มต่อ</button>
+      <button type="button" class="btn-ghost" id="mCancel">Cancel</button>
+      <button type="button" class="btn-primary" id="mConfirm" style="padding:12px 22px">Save</button>
+      <button type="button" class="btn-primary" id="mConfirmMore" style="padding:12px 22px;background:var(--blue-dark)">Save &amp; Add Container</button>
     </div>
   </div>
 </div>
@@ -557,10 +557,10 @@ async function loadConfig(){
     if(V.length) cfg.vessels = V;
   }catch(e){ /* ใช้ fallback */ }
 
-  fillSelect($("#terminal"), cfg.terminals, "— เลือกท่า —");
-  fillSelect($("#vessel"), cfg.vessels, "— เลือกชื่อเรือ —");
-  fillSelect($("#mSize"), cfg.sizes, "— เลือกขนาด —");
-  fillSelect($("#mStatus"), cfg.statuses, "— เลือกสถานะ —");
+  fillSelect($("#terminal"), cfg.terminals, "— Select Terminal —");
+  fillSelect($("#vessel"), cfg.vessels, "— Select Vessel —");
+  fillSelect($("#mSize"), cfg.sizes, "— Select Size —");
+  fillSelect($("#mStatus"), cfg.statuses, "— Select Status —");
 }
 function fillSelect(sel, items, placeholder){
   sel.innerHTML = "";
@@ -592,16 +592,16 @@ function openModal(index){
     $("#mHumidity").value=c.humidity||"";
     $("#mVent").value=c.vent||""; $("#mDgUn").value=c.dgUn||"";
     $("#mOverHeight").value=c.overHeight||""; $("#mOverWidth").value=c.overWidth||"";
-    $("#modalTitle").textContent = "แก้ไขข้อมูลตู้ #" + (editIndex+1);
+    $("#modalTitle").textContent = "Edit Container #" + (editIndex+1);
     $("#mConfirmMore").style.display = "none";
-    $("#mConfirm").textContent = "บันทึก";
+    $("#mConfirm").textContent = "Save";
   }else{
     $("#mSize").value=""; $("#mCntr").value=""; $("#mStatus").value="";
     $("#mCommodity").value=""; $("#mTemp").value=""; $("#mHumidity").value=""; $("#mVent").value=""; $("#mDgUn").value="";
     $("#mOverHeight").value=""; $("#mOverWidth").value="";
-    $("#modalTitle").textContent = "เพิ่มข้อมูลตู้";
+    $("#modalTitle").textContent = "Add Container";
     $("#mConfirmMore").style.display = "";
-    $("#mConfirm").textContent = "＋ เพิ่มตู้";
+    $("#mConfirm").textContent = "Save";
   }
   updateOversizeVisibility();
   m.classList.add("show");
@@ -659,8 +659,8 @@ function renderContainers(){
       '<div class="info"><div class="cn">'+escapeHtml(c.container)+'</div>'+
       '<div class="meta"><span class="badge">'+escapeHtml(c.size)+'</span>'+
       '<span class="badge '+cls+'">'+escapeHtml(st)+'</span>'+extra.join("")+'</div></div>'+
-      '<button type="button" class="btn-text" data-edit="'+i+'">แก้ไข</button>'+
-      '<button type="button" class="x" data-del="'+i+'" title="ลบ">&times;</button>';
+      '<button type="button" class="btn-text" data-edit="'+i+'">Edit</button>'+
+      '<button type="button" class="x" data-del="'+i+'" title="Delete">&times;</button>';
     list.appendChild(row);
   });
   $("#cntrEmpty").style.display = containers.length ? "none" : "block";
@@ -756,7 +756,7 @@ function buildRows(p){
 /* ================= โหลดไบต์ของไฟล์แม่แบบ (docs/: fetch จากไฟล์พี่น้อง) ================= */
 async function loadTemplateBytes(conf){
   const b64 = TEMPLATES_B64[conf.key];
-  if(!b64) throw new Error("ไม่พบไฟล์แม่แบบที่ฝังไว้: " + conf.key);
+  if(!b64) throw new Error("Embedded template file not found: " + conf.key);
   return b64ToArrayBuffer(b64);
 }
 
@@ -768,7 +768,7 @@ async function fillTemplate(conf, rows){
   let sheetPath = await resolveSheetPathXml(zip, conf.sheet);
   if(!sheetPath){
     sheetPath = await firstSheetPathXml(zip);
-    warnings.push("ไม่พบชีต '"+conf.sheet+"' ใช้ชีตแรกในสมุดงานแทน");
+    warnings.push("Sheet '"+conf.sheet+"' not found, using the first sheet in the workbook instead");
   }
   let xml = await zip.file(sheetPath).async("string");
 
@@ -805,7 +805,7 @@ async function fillTemplate(conf, rows){
 
   let written = 0;
   for(let i=0; i<rows.length; i++){
-    if(i >= t.max){ warnings.push("แม่แบบรองรับสูงสุด "+t.max+" ตู้ ตู้ที่ "+(i+1)+" เป็นต้นไปไม่ถูกเขียน"); break; }
+    if(i >= t.max){ warnings.push("This template supports up to "+t.max+" containers; container #"+(i+1)+" onward will not be written"); break; }
     const rec = rows[i], R = t.start + i;
     for(const field in cols){
       const addr = cols[field] + R;
@@ -861,17 +861,17 @@ async function saveFile(buf, name){
    ทดสอบรูปแบบคำขอ/ไฟล์แนบจริงแล้วก่อนขึ้นระบบ (ผ่าน create_draft แบบไม่ส่งจริง) */
 const GMAIL_TOOL = "send_message";
 const GMAIL_ERROR_COPY = {
-  needs_reauth:        "บัญชี Gmail ของคุณต้องเชื่อมต่อใหม่ (ไปที่ Settings → Connectors ใน claude.ai)",
-  server_not_connected:"ยังไม่ได้เชื่อมต่อ Gmail กับบัญชี Claude ของคุณ (ไปที่ Settings → Connectors)",
-  selection_required:  "มีหลายบัญชี Gmail เชื่อมต่ออยู่ กรุณาเลือกบัญชีในกล่องที่เด้งขึ้น แล้วกดส่งข้อมูลอีกครั้ง",
-  not_in_manifest:      "หน้านี้ยังไม่ได้รับอนุญาตให้ใช้ Gmail",
-  consent_required:     "คุณยังไม่อนุญาตให้หน้านี้ใช้ Gmail กดส่งข้อมูลอีกครั้งเพื่อขออนุญาต",
-  blocked_by_policy:    "องค์กรของคุณปิดการใช้ Gmail จากหน้านี้ไว้",
-  approval_required:    "อีเมลนี้ต้องขออนุมัติก่อนส่ง (นโยบายองค์กร)",
-  tool_error:           "Gmail รายงานว่าส่งไม่สำเร็จ",
-  cancelled:            "การส่งอีเมลถูกยกเลิกกลางคัน (ไม่แน่ใจว่าส่งไปแล้วหรือไม่ กรุณาตรวจ Gmail ก่อนส่งซ้ำ)",
-  not_granted:          "หน้านี้ไม่ได้รับสิทธิ์ใช้ตัวเชื่อมต่อ",
-  capability_disabled:  "ระบบเชื่อมต่อใช้ไม่ได้ในหน้านี้ขณะนี้",
+  needs_reauth:        "Your Gmail account needs to be reconnected (go to Settings → Connectors on claude.ai)",
+  server_not_connected:"Gmail is not connected to your Claude account (go to Settings → Connectors)",
+  selection_required:  "Multiple Gmail accounts are connected — please choose one in the popup and submit again",
+  not_in_manifest:      "This page has not been authorized to use Gmail",
+  consent_required:     "You have not authorized this page to use Gmail — submit again to request permission",
+  blocked_by_policy:    "Your organization has disabled Gmail access from this page",
+  approval_required:    "This email requires approval before sending (organization policy)",
+  tool_error:           "Gmail reported that the send failed",
+  cancelled:            "Email sending was cancelled midway (it's unclear whether it sent — please check Gmail before retrying)",
+  not_granted:          "This page does not have permission to use the connector",
+  capability_disabled:  "The connector is not available on this page right now",
 };
 function arrayBufferToB64(buf){
   const bytes = new Uint8Array(buf);
@@ -899,7 +899,7 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
     return {ok:true, payload: res.payload};
   }catch(e){
     const code = e && e.code;
-    return {ok:false, reason: GMAIL_ERROR_COPY[code] || ("Gmail ส่งไม่สำเร็จ (" + (code || "unknown") + ")")};
+    return {ok:false, reason: GMAIL_ERROR_COPY[code] || ("Gmail send failed (" + (code || "unknown") + ")")};
   }
 }
 
@@ -916,7 +916,7 @@ async function submitForm(ev){
   }
   const terminal = $("#terminal").value;
   const conf = TERMINALS[terminal];
-  if(!conf){ showResultError("ไม่รู้จัก TERMINAL: " + terminal); return; }
+  if(!conf){ showResultError("Unknown TERMINAL: " + terminal); return; }
 
   const payload = {
     terminal,
@@ -932,7 +932,7 @@ async function submitForm(ev){
   };
 
   const btn = $("#btnSubmit");
-  btn.disabled = true; btn.textContent = "กำลังสร้างไฟล์…";
+  btn.disabled = true; btn.textContent = "Generating file…";
   try{
     const rows = buildRows(payload);
     const { buf, written, warnings } = await fillTemplate(conf, rows);
@@ -940,7 +940,7 @@ async function submitForm(ev){
     const subject = "[SHORE] "+conf.key+" - "+payload.vessel+" V."+payload.voy+" - Booking "+payload.booking;
     const bodyText = buildMailBody(payload, rows, conf.out, warnings);
 
-    btn.textContent = "กำลังส่งอีเมลผ่าน Gmail…";
+    btn.textContent = "Sending email via Gmail…";
     const gmail = await tryGmailSend(buf, conf.out, EMAIL_RECIPIENTS, subject, bodyText);
     if(gmail.ok){
       showResultGmailSent(conf.out, written, warnings);
@@ -948,14 +948,14 @@ async function submitForm(ev){
       return;
     }
 
-    // Gmail ส่งไม่สำเร็จ (หรือไม่ได้รันใน Artifact ที่มี capability นี้) -> สำรอง: บันทึกไฟล์
-    btn.textContent = "กำลังบันทึกไฟล์…";
+    // Gmail send failed (or not running in an Artifact with this capability) -> fallback: save file
+    btn.textContent = "Saving file…";
     let saveStatus;
     try{
       saveStatus = await saveFile(buf, conf.out);
     }catch(e){
       if(e && e.code === "declined"){
-        showResultError("ยกเลิกการบันทึกไฟล์แล้ว — ข้อมูลยังอยู่ในฟอร์ม กดส่งข้อมูลอีกครั้งเมื่อพร้อม");
+        showResultError("File save cancelled — your data is still in the form; submit again when ready");
         return;
       }
       throw e;
@@ -966,10 +966,10 @@ async function submitForm(ev){
     console.error(e);
     let msg = e.message || String(e);
     if(/Failed to fetch|NetworkError|HTTP 0/i.test(msg))
-      msg = "โหลดไฟล์แม่แบบไม่ได้ — ต้องเปิดหน้านี้ผ่าน http/https (GitHub Pages หรือ `python -m http.server`) ไม่ใช่ดับเบิลคลิกไฟล์";
+      msg = "Could not load the template file — this page must be opened via http/https (GitHub Pages or `python -m http.server`), not by double-clicking the file";
     showResultError(msg);
   }finally{
-    btn.disabled = false; btn.textContent = "ส่งข้อมูล";
+    btn.disabled = false; btn.textContent = "Submit";
   }
 }
 
@@ -979,9 +979,9 @@ function showResultGmailSent(outFile, rows, warnings){
   const toList = EMAIL_RECIPIENTS.map(escapeHtml).join(", ");
   $("#resultBox").innerHTML =
     '<div class="result">'+
-      '<h2>✓ ส่งอีเมลสำเร็จผ่าน Gmail ของคุณ</h2>'+
-      '<div>ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกส่งไปที่ '+toList+' เรียบร้อยแล้ว</div>'+
-      '<div>จำนวนตู้: '+rows+' ใบ</div>'+ warn +
+      '<h2>✓ Email sent successfully via your Gmail</h2>'+
+      '<div>File <span class="file">'+escapeHtml(outFile)+'</span> has been sent to '+toList+'</div>'+
+      '<div>Containers: '+rows+'</div>'+ warn +
     '</div>';
 }
 function showResult(outFile, rows, warnings, saveStatus, gmailReason){
@@ -989,32 +989,32 @@ function showResult(outFile, rows, warnings, saveStatus, gmailReason){
     ? '<ul>'+warnings.map(w=>'<li>'+escapeHtml(w)+'</li>').join("")+'</ul>' : "";
   const toList = EMAIL_RECIPIENTS.map(escapeHtml).join(", ");
   const savedLine = saveStatus === "delivered"
-    ? 'ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกส่งไปยังปลายทางที่คุณเลือกแล้ว'
-    : 'ไฟล์ <span class="file">'+escapeHtml(outFile)+'</span> ถูกบันทึกไว้แล้ว';
+    ? 'File <span class="file">'+escapeHtml(outFile)+'</span> has been sent to your selected destination'
+    : 'File <span class="file">'+escapeHtml(outFile)+'</span> has been saved';
   const gmailLine = gmailReason
-    ? '<li>ส่งผ่าน Gmail อัตโนมัติไม่สำเร็จ: '+escapeHtml(gmailReason)+' — ผู้รับที่ตั้งใจส่ง: '+toList+'</li>'
+    ? '<li>Automatic Gmail sending failed: '+escapeHtml(gmailReason)+' — intended recipients: '+toList+'</li>'
     : '';
   $("#resultBox").innerHTML =
     '<div class="result">'+
-      '<h2>✓ บันทึกไฟล์สำเร็จ</h2>'+
+      '<h2>✓ File saved successfully</h2>'+
       '<div>'+savedLine+'</div>'+
-      '<div>จำนวนตู้: '+rows+' ใบ</div>'+ warn +
+      '<div>Containers: '+rows+'</div>'+ warn +
       '<ul>'+gmailLine+
-      '<li>นำไฟล์นี้ไปส่งต่อ/แนบอีเมลให้ท่าเรือหรือเอเย่นต์ตามขั้นตอนของท่านได้เลย</li>'+
+      '<li>You can now forward or email this file to the terminal or agent as needed</li>'+
       '</ul>'+
     '</div>';
 }
 function showResultError(msg){
   $("#resultBox").innerHTML =
     '<div class="result" style="background:#fce8e6;border-color:#f3b8b2">'+
-      '<h2 style="color:#c5221f">✕ เกิดข้อผิดพลาด</h2><div>'+escapeHtml(msg)+'</div>'+
+      '<h2 style="color:#c5221f">✕ An error occurred</h2><div>'+escapeHtml(msg)+'</div>'+
     '</div>';
 }
 
 /* ================= init ================= */
 document.addEventListener("DOMContentLoaded", ()=>{
   if(!window.XLSX || !window.JSZip){
-    showResultError("โหลดไลบรารีที่จำเป็นไม่สำเร็จ (SheetJS/JSZip) — ตรวจสอบอินเทอร์เน็ตแล้วรีเฟรชหน้านี้");
+    showResultError("Failed to load required libraries (SheetJS/JSZip) — please check your internet connection and refresh this page");
   }
 
   loadConfig();
@@ -1025,7 +1025,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $("#form").addEventListener("submit", submitForm);
   $("#btnAdd").addEventListener("click", ()=>openModal(-1));
   $("#btnReset").addEventListener("click", ()=>{
-    if(!confirm("ล้างข้อมูลทั้งหมดในฟอร์ม?")) return;
+    if(!confirm("Clear all form data?")) return;
     $("#form").reset(); containers = []; renderContainers();
     $("#resultBox").innerHTML = ""; clearErr(document);
   });
