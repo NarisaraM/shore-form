@@ -17,8 +17,13 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import sys
+import tempfile
+import threading
+import time
 import urllib.parse
+from collections import defaultdict, deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -38,6 +43,35 @@ EMAIL_RECIPIENTS = [
     "narisaram@heungaline.co.th",
     "sirichai@heungaline.co.th",
 ]
+# บนเซิร์ฟเวอร์จริงตั้งค่าผ่านตัวแปรแวดล้อม EMAIL_RECIPIENTS="a@x.com,b@y.com" ได้
+if os.environ.get("EMAIL_RECIPIENTS"):
+    EMAIL_RECIPIENTS = [e.strip() for e in os.environ["EMAIL_RECIPIENTS"].split(",") if e.strip()]
+
+# โหมดโฮสต์สาธารณะ: เปิดเมื่อมีตัวแปร PORT (ผู้ให้บริการโฮสต์จะกำหนดให้เอง)
+HOSTED = bool(os.environ.get("PORT"))
+MAX_BODY_BYTES = 1_000_000
+RATE_LIMIT_PER_IP = int(os.environ.get("RATE_LIMIT_PER_IP", "10"))      # ครั้ง / 10 นาที / IP
+RATE_LIMIT_GLOBAL = int(os.environ.get("RATE_LIMIT_GLOBAL", "200"))     # ครั้ง / ชั่วโมง ทั้งระบบ
+
+_rate_lock = threading.Lock()
+_ip_hits = defaultdict(deque)
+_all_hits = deque()
+
+
+def _rate_limited(ip: str) -> bool:
+    """True ถ้าส่งถี่เกินกำหนด (กันคนนอกใช้เมลกลางส่งสแปม)"""
+    now = time.time()
+    with _rate_lock:
+        while _all_hits and now - _all_hits[0] > 3600:
+            _all_hits.popleft()
+        hits = _ip_hits[ip]
+        while hits and now - hits[0] > 600:
+            hits.popleft()
+        if len(hits) >= RATE_LIMIT_PER_IP or len(_all_hits) >= RATE_LIMIT_GLOBAL:
+            return True
+        hits.append(now)
+        _all_hits.append(now)
+        return False
 
 
 def _json_bytes(obj) -> bytes:
@@ -62,6 +96,7 @@ def _build_mail(payload: dict, result: dict):
     rows = payload.get("rows", [])
 
     subject = f"[SHORE] {result.get('terminal_key','')} - {vessel} V.{voy} - Booking {booking}"
+    subject = " ".join(subject.split())[:200]  # กันขึ้นบรรทัดใหม่ในหัวเรื่อง
 
     lines = [
         "มีการส่งข้อมูล SHORE ใหม่ผ่านระบบแบบฟอร์มสำรวจข้อมูล (Self Service Shore)",
@@ -125,13 +160,17 @@ class Handler(BaseHTTPRequestHandler):
 
     def _read_body(self) -> dict:
         length = int(self.headers.get("Content-Length") or 0)
-        if length <= 0:
+        if length <= 0 or length > MAX_BODY_BYTES:
             return {}
         raw = self.rfile.read(length)
         try:
             return json.loads(raw.decode("utf-8"))
         except Exception:
             return {}
+
+    def _client_ip(self) -> str:
+        fwd = self.headers.get("X-Forwarded-For", "")
+        return (fwd.split(",")[0].strip() if fwd else self.client_address[0]) or "?"
 
     def log_message(self, fmt, *args):  # noqa: A003 - ปิด log รก ๆ
         sys.stderr.write("  %s - %s\n" % (self.address_string(), fmt % args))
@@ -154,10 +193,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/mail-status":
             return self._send_json({
                 "configured": mailer.is_configured(BASE_DIR),
-                "recipients": EMAIL_RECIPIENTS,
+                **({} if HOSTED else {"recipients": EMAIL_RECIPIENTS}),
             })
 
-        if path.startswith("/download/"):
+        if path.startswith("/download/") and not HOSTED:
             name = urllib.parse.unquote(path[len("/download/"):])
             return self._serve_download(name)
 
@@ -168,8 +207,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._serve_file(os.path.join(BASE_DIR, "bg-containers.jpg"), "image/jpeg")
 
         if path.startswith("/web/"):
-            return self._serve_file(os.path.join(BASE_DIR, path.lstrip("/")),
-                                    self._guess_ctype(path))
+            target = os.path.realpath(os.path.join(BASE_DIR, urllib.parse.unquote(path).lstrip("/")))
+            if os.path.commonpath([target, os.path.realpath(WEB_DIR)]) != os.path.realpath(WEB_DIR):
+                return self._send_json({"error": "not found"}, 404)
+            return self._serve_file(target, self._guess_ctype(path))
 
         return self._send_json({"error": "not found"}, 404)
 
@@ -180,44 +221,56 @@ class Handler(BaseHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
 
-        if path == "/api/parse-pdf":
+        if path == "/api/parse-pdf" and not HOSTED:
             result = parse_folder(PDF_DIR)
             return self._send_json(result)
 
         if path == "/api/submit":
+            if HOSTED and _rate_limited(self._client_ip()):
+                return self._send_json(
+                    {"ok": False, "error": "Too many submissions — please wait a few minutes and try again", "warnings": []}, 429)
             payload = self._read_body()
+            # โหมดโฮสต์: ใช้โฟลเดอร์ชั่วคราวแยกต่อคำขอ (กันไฟล์ของผู้ใช้หลายคนทับกัน) แล้วลบทิ้งหลังส่งเสร็จ
+            work_dir = tempfile.mkdtemp(prefix="submit_", dir=OUT_DIR) if HOSTED else OUT_DIR
             try:
-                result = fill(payload, BASE_DIR, CACHE_DIR, OUT_DIR)
-            except Exception as exc:
-                import traceback
-                traceback.print_exc()
-                return self._send_json({"ok": False, "error": str(exc), "warnings": []}, 500)
-
-            if not result.get("ok"):
-                return self._send_json(result, 400)
-
-            # เขียนไฟล์ Excel สำเร็จแล้ว -> ส่งอีเมลแนบไฟล์ (แทนการให้ดาวน์โหลด)
-            try:
-                subject, body = _build_mail(payload, result)
-                mailer.send_excel_email(
-                    BASE_DIR,
-                    to_list=EMAIL_RECIPIENTS,
-                    subject=subject,
-                    body_text=body,
-                    attachment_path=result["out_path"],
-                    attachment_name=result["out_file"],
-                )
-                result["emailed"] = True
-                result["to"] = EMAIL_RECIPIENTS
-                return self._send_json(result, 200)
-            except Exception as exc:
-                # เขียนไฟล์ไว้ที่ output/ แล้ว (เป็นสำรอง) แต่ส่งเมลไม่สำเร็จ -> แจ้งผู้ใช้ตรง ๆ
-                result["ok"] = False
-                result["emailed"] = False
-                result["error"] = str(exc)
-                return self._send_json(result, 502)
+                return self._handle_submit(payload, work_dir)
+            finally:
+                if HOSTED:
+                    shutil.rmtree(work_dir, ignore_errors=True)
 
         return self._send_json({"error": "not found"}, 404)
+
+    def _handle_submit(self, payload: dict, out_dir: str):
+        try:
+            result = fill(payload, BASE_DIR, CACHE_DIR, out_dir)
+        except Exception as exc:
+            import traceback
+            traceback.print_exc()
+            return self._send_json({"ok": False, "error": str(exc), "warnings": []}, 500)
+
+        if not result.get("ok"):
+            return self._send_json(result, 400)
+
+        out_path = result.pop("out_path")  # path ในเครื่องเซิร์ฟเวอร์ ไม่ส่งกลับให้ผู้ใช้
+        try:
+            subject, body = _build_mail(payload, result)
+            mailer.send_excel_email(
+                BASE_DIR,
+                to_list=EMAIL_RECIPIENTS,
+                subject=subject,
+                body_text=body,
+                attachment_path=out_path,
+                attachment_name=result["out_file"],
+            )
+        except Exception as exc:
+            result["ok"] = False
+            result["emailed"] = False
+            result["error"] = str(exc)
+            return self._send_json(result, 502)
+
+        result["emailed"] = True
+        result["to"] = EMAIL_RECIPIENTS
+        return self._send_json(result, 200)
 
     # ---------------------------------------------------------------- helpers
     @staticmethod
@@ -266,5 +319,7 @@ def serve(host: str = "127.0.0.1", port: int = 8000):
 
 
 if __name__ == "__main__":
-    p = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
-    serve(port=p)
+    if HOSTED:
+        serve(host="0.0.0.0", port=int(os.environ["PORT"]))
+    else:
+        serve(port=int(sys.argv[1]) if len(sys.argv) > 1 else 8000)

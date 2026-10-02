@@ -1,0 +1,9 @@
+smtp_config.json
+output/
+build/
+pdf_in/
+.git/
+.claude/
+__pycache__/
+docs/
+artifact_src/

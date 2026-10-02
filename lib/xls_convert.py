@@ -108,9 +108,19 @@ def ensure_xlsx(src_path: str, cache_dir: str, force: bool = False) -> str:
     if not force and os.path.exists(dst) and os.path.getmtime(dst) >= os.path.getmtime(src_path):
         return dst
 
+    # แม่แบบที่แปลงด้วย Excel ไว้ล่วงหน้า (ติดไปกับ git) ใช้บนเซิร์ฟเวอร์ที่ไม่มี Excel เช่น Linux
+    prebuilt = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(src_path))),
+                            "templates_xlsx", stem + ".xlsx")
+
     print(f"  [xls_convert] กำลังแปลง {base} -> {os.path.basename(dst)}")
     if _excel_com_convert(src_path, dst):
         print("  [xls_convert] แปลงด้วย Microsoft Excel สำเร็จ (รักษาเลย์เอาต์)")
+        os.makedirs(os.path.dirname(prebuilt), exist_ok=True)
+        shutil.copyfile(dst, prebuilt)
+        return dst
+    if os.path.isfile(prebuilt):
+        shutil.copyfile(prebuilt, dst)
+        print("  [xls_convert] ใช้แม่แบบที่แปลงไว้ล่วงหน้า (templates_xlsx/)")
         return dst
     if _xlrd_convert(src_path, dst):
         print("  [xls_convert] แปลงด้วย xlrd สำเร็จ (เฉพาะค่า ไม่มีการจัดรูปแบบ)")
