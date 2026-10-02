@@ -35,7 +35,7 @@ from lib import mailer                             # noqa: E402
 
 # ผู้รับอีเมลทุกครั้งที่มีการส่งข้อมูล (แก้ได้ตรงนี้)
 EMAIL_RECIPIENTS = [
-    "dongykong.naris@gmail.com",
+    "narisaram@heungaline.co.th",
     "sirichai@heungaline.co.th",
 ]
 
