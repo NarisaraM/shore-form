@@ -11,7 +11,8 @@
 // ผู้รับอีเมลทุกครั้งที่มีการส่งข้อมูล (แก้ได้ตรงนี้ แล้ว Deploy เวอร์ชันใหม่)
 var RECIPIENTS = [
   "narisaram@heungaline.co.th",
-  "sirichai@heungaline.co.th"
+  "sirichai@heungaline.co.th",
+  "logistics@heungaline.co.th"
 ];
 
 var SENDER_NAME = "SHORE Self Service";

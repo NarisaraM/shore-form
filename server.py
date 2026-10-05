@@ -42,6 +42,7 @@ from lib import mailer                             # noqa: E402
 EMAIL_RECIPIENTS = [
     "narisaram@heungaline.co.th",
     "sirichai@heungaline.co.th",
+    "logistics@heungaline.co.th",
 ]
 # บนเซิร์ฟเวอร์จริงตั้งค่าผ่านตัวแปรแวดล้อม EMAIL_RECIPIENTS="a@x.com,b@y.com" ได้
 if os.environ.get("EMAIL_RECIPIENTS"):

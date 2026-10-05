@@ -63,7 +63,7 @@ pip install -r requirements.txt
 | 7 | **ตู้คอนเทนเนอร์** | กดปุ่ม **＋ เพิ่มตู้** → ป็อปอัป | เลือก **SIZE** (จาก `Check.xlsx`) + กรอก **Container Number** + เลือก **STATUS F/E** (จาก `Check.xlsx`) เพิ่มได้หลายใบ |
 
 กด **ส่งข้อมูล** → ระบบเขียนไฟล์ Excel แล้ว **ส่งอีเมลแนบไฟล์นั้นทันที** ไปที่
-`narisaram@heungaline.co.th` และ `sirichai@heungaline.co.th` (แก้รายชื่อผู้รับได้ที่ `EMAIL_RECIPIENTS`
+`narisaram@heungaline.co.th`, `sirichai@heungaline.co.th` และ `logistics@heungaline.co.th` (แก้รายชื่อผู้รับได้ที่ `EMAIL_RECIPIENTS`
 ใน [server.py](server.py)) — ไม่มีการดาวน์โหลดไฟล์ให้ผู้กรอกฟอร์มอีกต่อไป
 (ไฟล์ยังถูกเก็บสำรองไว้ที่ `output/` บนเครื่องที่รันเซิร์ฟเวอร์ เผื่อกรณีอีเมลมีปัญหา)
 

@@ -88,7 +88,7 @@ def main():
         "\n"
         "/* ผู้รับอีเมล + เนื้อหาอีเมล สำหรับการส่งผ่าน Gmail (เวอร์ชัน docs/ แบบ static ตัดออกแล้ว\n"
         "   เพราะ GitHub Pages ส่งอีเมลตรงไม่ได้ แต่ Artifact เชื่อม Gmail ของผู้ใช้ได้จริง จึงคงไว้ที่นี่) */\n"
-        'const EMAIL_RECIPIENTS = ["narisaram@heungaline.co.th", "sirichai@heungaline.co.th"];\n'
+        'const EMAIL_RECIPIENTS = ["narisaram@heungaline.co.th", "sirichai@heungaline.co.th", "logistics@heungaline.co.th"];\n'
         "function buildMailBody(payload, rows, outFile, warnings){\n"
         "  const lines = [\n"
         '    "A new SHORE submission has been sent via the Self Service Shore form",\n'
