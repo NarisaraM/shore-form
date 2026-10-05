@@ -286,8 +286,20 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
   try{
     const rows = buildRows(payload);
     const { buf, written, warnings } = await fillTemplate(conf, rows);
-    triggerDownload(buf, conf.out);
-    showResult(conf.out, written, warnings);
+    if(MAIL_ENDPOINT){
+      btn.textContent = "Sending email…";
+      const sent = await sendViaEndpoint(buf, conf, payload, rows, warnings);
+      if(sent.ok){
+        showResultEmailed(conf.out, written, warnings);
+      }else{
+        triggerDownload(buf, conf.out);
+        showResult(conf.out, written, (warnings || []).concat([
+          "Automatic email failed (" + sent.error + ") — the file was downloaded instead, please email it manually"]));
+      }
+    }else{
+      triggerDownload(buf, conf.out);
+      showResult(conf.out, written, warnings);
+    }
     window.scrollTo({top:document.body.scrollHeight, behavior:"smooth"});
   }catch(e){
     console.error(e);

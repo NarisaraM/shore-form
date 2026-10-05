@@ -889,6 +889,75 @@ function triggerDownload(buf, name){
    (ต้องมี backend หรือบริการส่งอีเมลแบบเสียเงิน) - เลยตัดขั้นตอนอีเมลออก ให้ "บันทึกไฟล์" ตรง ๆ แทน
    ผู้ใช้นำไฟล์ที่ได้ไปส่งต่อ/แนบอีเมลเอง หรือใช้เวอร์ชัน Python (python run.py) ถ้าต้องการส่งอัตโนมัติ */
 
+/* ---------- ส่งอีเมลอัตโนมัติผ่าน Google Apps Script (ว่าง = ปิด แล้วบันทึกไฟล์ลงเครื่องแทน) ---------- */
+const MAIL_ENDPOINT = "";
+
+function buildEmailText(payload, rows, outFile, warnings){
+  const lines = [
+    "A new SHORE submission has been sent via the Self Service Shore form",
+    "",
+    "TERMINAL      : " + payload.terminal,
+    "Vessel / Voy. : " + payload.vessel + " V." + payload.voy,
+    "Shipper name  : " + payload.shipper,
+    "POD           : " + payload.pod,
+    "Booking No.   : " + payload.booking,
+    "",
+    "Containers (" + payload.rows.length + "):"
+  ];
+  payload.rows.forEach((r, i) => {
+    const extra = [];
+    if(r.commodity) extra.push("commodity=" + r.commodity);
+    if(r.temp) extra.push("temp=" + r.temp);
+    if(r.humidity) extra.push("humidity=" + r.humidity);
+    if(r.vent) extra.push("vent=" + r.vent);
+    if(r.dgUn) extra.push("DG/UN=" + r.dgUn);
+    if(r.overHeight) extra.push("overHeight=" + r.overHeight);
+    if(r.overWidth) extra.push("overWidth=" + r.overWidth);
+    lines.push("  " + (i + 1) + ". " + r.container + "  size=" + r.size + "  status=" + r.status + (extra.length ? "  " + extra.join("  ") : ""));
+  });
+  lines.push("", "Contact: " + [payload.contactName, payload.contactPhone, payload.contactEmail].filter(Boolean).join(" "));
+  if(payload.remark) lines.push("Special Condition Request: " + payload.remark);
+  if(warnings && warnings.length) lines.push("", "Notes:", ...warnings.map(w => "  - " + w));
+  lines.push("", "Attachment: " + outFile);
+  return lines.join("\n");
+}
+
+async function sendViaEndpoint(buf, conf, payload, rows, warnings){
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for(let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  const body = JSON.stringify({
+    subject: "[SHORE] " + conf.key + " - " + payload.vessel + " V." + payload.voy + " - Booking " + payload.booking,
+    body: buildEmailText(payload, rows, conf.out, warnings),
+    filename: conf.out,
+    fileB64: btoa(bin),
+    replyTo: payload.contactEmail,
+    hp: ""
+  });
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 45000);
+  try{
+    const res = await fetch(MAIL_ENDPOINT, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body, signal:ctrl.signal});
+    const data = await res.json();
+    return data.ok ? {ok:true} : {ok:false, error:data.error || "unknown error"};
+  }catch(e){
+    return {ok:false, error: e.name === "AbortError" ? "timed out" : (e.message || String(e))};
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
+function showResultEmailed(outFile, rows, warnings){
+  const warn = (warnings && warnings.length)
+    ? '<ul>'+warnings.map(w=>'<li>'+escapeHtml(w)+'</li>').join("")+'</ul>' : "";
+  $("#resultBox").innerHTML =
+    '<div class="result">'+
+      '<h2>✓ Email sent successfully</h2>'+
+      '<div>File <span class="file">'+escapeHtml(outFile)+'</span> has been emailed to the Heung-A Line team</div>'+
+      '<div>Containers: '+rows+'</div>'+ warn +
+    '</div>';
+}
+
 async function submitForm(ev){
   ev.preventDefault();
   $("#resultBox").innerHTML = "";
@@ -918,8 +987,20 @@ async function submitForm(ev){
   try{
     const rows = buildRows(payload);
     const { buf, written, warnings } = await fillTemplate(conf, rows);
-    triggerDownload(buf, conf.out);
-    showResult(conf.out, written, warnings);
+    if(MAIL_ENDPOINT){
+      btn.textContent = "Sending email…";
+      const sent = await sendViaEndpoint(buf, conf, payload, rows, warnings);
+      if(sent.ok){
+        showResultEmailed(conf.out, written, warnings);
+      }else{
+        triggerDownload(buf, conf.out);
+        showResult(conf.out, written, (warnings || []).concat([
+          "Automatic email failed (" + sent.error + ") — the file was downloaded instead, please email it manually"]));
+      }
+    }else{
+      triggerDownload(buf, conf.out);
+      showResult(conf.out, written, warnings);
+    }
     window.scrollTo({top:document.body.scrollHeight, behavior:"smooth"});
   }catch(e){
     console.error(e);
@@ -990,6 +1071,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
     el.addEventListener("change", ()=>setErr(el,false));
   });
   $("#confirmCheck").addEventListener("change", ()=>hideErr("confirm"));
+  if(MAIL_ENDPOINT){
+    const lbl = document.querySelector("#confirmCheck + span");
+    if(lbl) lbl.textContent = "I confirm the information entered is correct, before sending the email to the relevant parties";
+  }
 });
 </script>
 </body>
