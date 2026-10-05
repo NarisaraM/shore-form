@@ -890,7 +890,7 @@ function triggerDownload(buf, name){
    ผู้ใช้นำไฟล์ที่ได้ไปส่งต่อ/แนบอีเมลเอง หรือใช้เวอร์ชัน Python (python run.py) ถ้าต้องการส่งอัตโนมัติ */
 
 /* ---------- ส่งอีเมลอัตโนมัติผ่าน Google Apps Script (ว่าง = ปิด แล้วบันทึกไฟล์ลงเครื่องแทน) ---------- */
-const MAIL_ENDPOINT = "";
+const MAIL_ENDPOINT = "https://script.google.com/macros/s/AKfycbzDRqv_JJCGrcyZ6BNw7xQPG2ALYPIUVpuYtPNG7pqGqehL3ZItw3k08pI027gJwVvb/exec";
 
 function buildEmailText(payload, rows, outFile, warnings){
   const lines = [
