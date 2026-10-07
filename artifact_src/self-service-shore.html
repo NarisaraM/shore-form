@@ -1029,6 +1029,15 @@ async function sendViaEndpoint(buf, conf, payload, rows, warnings){
     filename: conf.out,
     fileB64: btoa(bin),
     replyTo: payload.contactEmail,
+    info: {
+      contactName: payload.contactName,
+      terminal: payload.terminal,
+      vessel: payload.vessel,
+      voy: payload.voy,
+      shipper: payload.shipper,
+      booking: payload.booking,
+      containers: payload.rows.map(r => r.container + " (" + r.size + ", " + r.status + ")")
+    },
     hp: ""
   });
   const ctrl = new AbortController();
@@ -1036,7 +1045,7 @@ async function sendViaEndpoint(buf, conf, payload, rows, warnings){
   try{
     const res = await fetch(MAIL_ENDPOINT, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body, signal:ctrl.signal});
     const data = await res.json();
-    return data.ok ? {ok:true} : {ok:false, error:data.error || "unknown error"};
+    return data.ok ? {ok:true, confirmedTo:data.confirmedTo || ""} : {ok:false, error:data.error || "unknown error"};
   }catch(e){
     return {ok:false, error: e.name === "AbortError" ? "timed out" : (e.message || String(e))};
   }finally{
@@ -1044,13 +1053,14 @@ async function sendViaEndpoint(buf, conf, payload, rows, warnings){
   }
 }
 
-function showResultEmailed(outFile, rows, warnings){
+function showResultEmailed(outFile, rows, warnings, confirmedTo){
   const warn = (warnings && warnings.length)
     ? '<ul>'+warnings.map(w=>'<li>'+escapeHtml(w)+'</li>').join("")+'</ul>' : "";
   $("#resultBox").innerHTML =
     '<div class="result">'+
       '<h2>✓ Email sent successfully</h2>'+
       '<div>File <span class="file">'+escapeHtml(outFile)+'</span> has been emailed to the Heung-A Line team</div>'+
+      (confirmedTo ? '<div>A confirmation email with a copy of the file was sent to <span class="file">'+escapeHtml(confirmedTo)+'</span></div>' : '')+
       '<div>Containers: '+rows+'</div>'+ warn +
     '</div>';
 }

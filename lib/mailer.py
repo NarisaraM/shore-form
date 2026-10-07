@@ -93,6 +93,7 @@ def send_excel_email(
     attachment_path: str,
     attachment_name: str,
     cc_list: Optional[List[str]] = None,
+    reply_to: Optional[str] = None,
 ) -> None:
     """
     ส่งอีเมลแนบไฟล์ Excel หนึ่งไฟล์ ให้ to_list (และ cc_list ถ้ามี)
@@ -115,6 +116,8 @@ def send_excel_email(
     msg["To"] = ", ".join(to_list)
     if cc_list:
         msg["Cc"] = ", ".join(cc_list)
+    if reply_to:
+        msg["Reply-To"] = reply_to
     msg.set_content(body_text)
 
     with open(attachment_path, "rb") as f:

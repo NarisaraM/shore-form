@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -48,6 +49,13 @@ EMAIL_RECIPIENTS = [
 if os.environ.get("EMAIL_RECIPIENTS"):
     EMAIL_RECIPIENTS = [e.strip() for e in os.environ["EMAIL_RECIPIENTS"].split(",") if e.strip()]
 
+# อีเมลยืนยัน (auto-reply) กลับไปหาผู้กรอก ตามอีเมล Contact ในฟอร์ม
+SEND_CONFIRMATION = os.environ.get("SEND_CONFIRMATION", "1") != "0"
+CONFIRM_REPLY_TO = os.environ.get("CONFIRM_REPLY_TO", "logistics@heungaline.co.th")
+CONFIRM_PER_ADDRESS_PER_DAY = 3
+EMAIL_RE = re.compile(r"^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$")
+_confirm_hits = defaultdict(deque)
+
 # โหมดโฮสต์สาธารณะ: เปิดเมื่อมีตัวแปร PORT (ผู้ให้บริการโฮสต์จะกำหนดให้เอง)
 HOSTED = bool(os.environ.get("PORT"))
 MAX_BODY_BYTES = 1_000_000
@@ -73,6 +81,70 @@ def _rate_limited(ip: str) -> bool:
         hits.append(now)
         _all_hits.append(now)
         return False
+
+
+def _confirm_allowed(address: str) -> bool:
+    """จำกัดจำนวนอีเมลยืนยันต่อที่อยู่ต่อวัน (กันใช้ระบบยิงอีเมลใส่คนอื่น)"""
+    now = time.time()
+    with _rate_lock:
+        hits = _confirm_hits[address.lower()]
+        while hits and now - hits[0] > 86400:
+            hits.popleft()
+        if len(hits) >= CONFIRM_PER_ADDRESS_PER_DAY:
+            return False
+        hits.append(now)
+        return True
+
+
+def _build_confirmation(payload: dict, result: dict):
+    one = lambda v, n: " ".join(str(v or "").split())[:n]
+    vessel, voy, booking = one(payload.get("vessel"), 80), one(payload.get("voy"), 40), one(payload.get("booking"), 60)
+    rows = payload.get("rows", [])[:50]
+    lines = [
+        f"Dear {one(payload.get('contactName'), 80) or 'Sir/Madam'},",
+        "",
+        "Thank you. Heung-A Line has received your booking amendment request submitted via Self Service Shore.",
+        "A copy of the submitted file is attached for your records.",
+        "",
+        f"TERMINAL      : {one(payload.get('terminal'), 120)}",
+        f"Vessel / Voy. : {vessel} V.{voy}",
+        f"Shipper name  : {one(payload.get('shipper'), 120)}",
+        f"Booking No.   : {booking}",
+        "",
+        f"Containers ({len(rows)}):",
+    ]
+    for i, r in enumerate(rows, 1):
+        lines.append(f"  {i}. {one(r.get('container'), 20)} ({one(r.get('size'), 20)}, {one(r.get('status'), 20)})")
+    lines += [
+        "",
+        "Our team will review your request and contact you if anything else is needed.",
+        "If any information above is incorrect, please reply to this email.",
+        "",
+        "Best regards,",
+        "Heung-A Line",
+        "",
+        "-- This is an automated message from Self Service Shore --",
+    ]
+    subject = one(f"[SHORE] We received your submission - {vessel} V.{voy} / Booking {booking}", 200)
+    return subject, "\n".join(lines)
+
+
+def _send_confirmation(payload: dict, result: dict, out_path: str) -> str:
+    """ส่งอีเมลยืนยันถึงผู้กรอก คืนที่อยู่ถ้าส่งแล้ว หรือ "" ถ้าไม่ได้ส่ง (ล้มเหลวก็ไม่กระทบการส่งหลัก)"""
+    to = str(payload.get("contactEmail") or "").strip()
+    if not SEND_CONFIRMATION or not EMAIL_RE.match(to) or not _confirm_allowed(to):
+        return ""
+    try:
+        subject, body = _build_confirmation(payload, result)
+        mailer.send_excel_email(
+            BASE_DIR, to_list=[to], subject=subject, body_text=body,
+            attachment_path=out_path, attachment_name=result["out_file"],
+            reply_to=CONFIRM_REPLY_TO,
+        )
+        return to
+    except Exception as exc:
+        sys.stderr.write(f"  [confirmation] could not send to {to}: {exc}\n")
+        return ""
 
 
 def _json_bytes(obj) -> bytes:
@@ -271,6 +343,7 @@ class Handler(BaseHTTPRequestHandler):
 
         result["emailed"] = True
         result["to"] = EMAIL_RECIPIENTS
+        result["confirmation_to"] = _send_confirmation(payload, result, out_path)
         return self._send_json(result, 200)
 
     # ---------------------------------------------------------------- helpers

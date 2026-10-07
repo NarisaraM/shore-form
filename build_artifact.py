@@ -290,7 +290,7 @@ async function tryGmailSend(buf, filename, toList, subject, bodyText){
       btn.textContent = "Sending email…";
       const sent = await sendViaEndpoint(buf, conf, payload, rows, warnings);
       if(sent.ok){
-        showResultEmailed(conf.out, written, warnings);
+        showResultEmailed(conf.out, written, warnings, sent.confirmedTo);
       }else{
         triggerDownload(buf, conf.out);
         showResult(conf.out, written, (warnings || []).concat([

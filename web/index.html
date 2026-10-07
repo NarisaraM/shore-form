@@ -720,6 +720,7 @@ function showResult(data){
     '<div class="result">'+
       '<h2>✓ Email sent successfully</h2>'+
       '<div>Sent file <span class="file">'+escapeHtml(data.out_file)+'</span> to: '+toList+'</div>'+
+      (data.confirmation_to ? '<div>A confirmation email with a copy of the file was sent to <span class="file">'+escapeHtml(data.confirmation_to)+'</span></div>' : '')+
       '<div>Containers sent: '+data.rows+'</div>'+
       warn+
     '</div>';
